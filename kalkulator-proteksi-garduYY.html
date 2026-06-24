@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Proteksi Gardu Distribusi</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#0A0F1A;
+  --surface:#121A2B;
+  --surface-2:#1A2540;
+  --surface-3:#212E4D;
+  --line:#28324A;
+  --text:#E7ECF5;
+  --text-dim:#8B97B0;
+  --text-faint:#5C6A87;
+  --blue:#2F80FF;
+  --blue-dim:#1B4DA8;
+  --amber:#FFB627;
+  --green:#34D399;
+  --red:#F87171;
+  --radius:10px;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+
+/* ===== Layout ===== */
+.app{
+  display:flex;
+  min-height:100vh;
+}
+.sidebar{
+  width:220px;
+  flex-shrink:0;
+  background:linear-gradient(180deg,#0D1424,#0A0F1A);
+  border-right:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  padding:18px 12px;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 8px 18px 8px;
+  border-bottom:1px solid var(--line);
+  margin-bottom:14px;
+}
+.brand-mark{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-dim));
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.06) inset;
+}
+.brand-mark svg{width:18px;height:18px;stroke:var(--amber);}
+.brand-text{font-family:var(--font-display);font-weight:600;font-size:13px;line-height:1.25;color:var(--text);}
+.brand-text span{display:block;font-family:var(--font-mono);font-size:10px;color:var(--text-faint);letter-spacing:.06em;margin-top:2px;}
+
+.nav{display:flex;flex-direction:column;gap:4px;}
+.nav-btn{
+  display:flex;align-items:center;gap:10px;
+  background:none;border:none;color:var(--text-dim);
+  padding:10px 10px;border-radius:8px;text-align:left;
+  font-size:13px;font-weight:500;
+  transition:background .15s,color .15s;
+  width:100%;
+}
+.nav-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;flex-shrink:0;}
+.nav-btn:hover{background:var(--surface-2);color:var(--text);}
+.nav-btn.active{background:var(--surface-3);color:var(--text);box-shadow:inset 2px 0 0 var(--amber);}
+.nav-spacer{flex:1;}
+.sidebar-foot{font-size:10px;color:var(--text-faint);font-family:var(--font-mono);padding:8px;border-top:1px solid var(--line);margin-top:10px;}
+
+.main{flex:1;min-width:0;padding:22px 26px 60px;}
+
+/* ===== Session bar ===== */
+.session-bar{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:18px;
+}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;color:var(--text-dim);font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+.field input,.field select,.field textarea{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  border-radius:7px;
+  padding:8px 10px;
+  font-size:13px;
+  outline:none;
+  width:100%;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(47,128,255,.18);}
+.field .mono{font-family:var(--font-mono);}
+
+/* ===== Tabs / cards ===== */
+.tab-content{display:none;}
+.tab-content.active{display:block;animation:fadein .18s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(2px);}to{opacity:1;transform:none;}}
+
+.grid-2{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;}
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px;
+}
+.card h2{
+  font-family:var(--font-display);font-size:15px;font-weight:600;
+  margin:0 0 4px;color:var(--text);
+}
+.card .sub{font-size:12px;color:var(--text-dim);margin:0 0 16px;}
+.info-banner{
+  background:rgba(47,128,255,.08);
+  border:1px solid rgba(47,128,255,.25);
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:12px;
+  color:#A9C6FF;
+  margin-bottom:16px;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.info-banner svg{width:14px;height:14px;flex-shrink:0;margin-top:2px;stroke:#A9C6FF;}
+
+.row{display:flex;gap:12px;}
+.row > .field{flex:1;}
+
+.readout{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:9px;
+  padding:14px 16px;
+  margin-top:14px;
+}
+.readout-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px dashed var(--line);}
+.readout-row:last-child{border-bottom:none;}
+.readout-row .k{font-size:12px;color:var(--text-dim);}
+.readout-row .v{font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--text);}
+.readout-row .v.big{font-size:20px;color:var(--amber);}
+.readout-row .v.ok{color:var(--green);}
+.readout-row .v.bad{color:var(--red);}
+
+.btn{
+  border:1px solid var(--line);
+  background:var(--surface-2);
+  color:var(--text);
+  padding:9px 16px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn:hover{background:var(--surface-3);}
+.btn svg{width:14px;height:14px;stroke:currentColor;}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-dim));border-color:var(--blue-dim);color:#fff;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-amber{background:rgba(255,182,39,.12);border-color:rgba(255,182,39,.4);color:var(--amber);}
+.btn-danger{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.35);color:var(--red);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+
+/* ===== SLD diagram ===== */
+.sld-wrap{overflow-x:auto;padding:10px 0 22px;}
+.sld{display:flex;align-items:stretch;min-width:920px;}
+.node{
+  width:170px;flex-shrink:0;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:12px;
+  position:relative;
+}
+.node-title{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
+.dot.green{background:var(--green);box-shadow:0 0 6px var(--green);}
+.dot.amber{background:var(--amber);box-shadow:0 0 6px var(--amber);}
+.dot.red{background:var(--red);box-shadow:0 0 6px var(--red);}
+.node-row{font-family:var(--font-mono);font-size:12px;display:flex;justify-content:space-between;padding:3px 0;color:var(--text);}
+.node-row .l{color:var(--text-faint);}
+.connector{width:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;}
+.connector::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:var(--line);}
+.connector svg{width:14px;height:14px;stroke:var(--text-faint);position:relative;z-index:1;background:var(--bg);}
+.branch-down{
+  margin:14px 170px 0 0px;
+  display:flex;
+}
+.node.ground{margin-top:14px;}
+
+/* ===== Tables ===== */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;
+  color:var(--text-dim);border-bottom:1px solid var(--line);padding:8px 10px;white-space:nowrap;
+}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--text);white-space:nowrap;}
+tbody tr:hover{background:var(--surface-2);}
+.empty-state{padding:40px 10px;text-align:center;color:var(--text-faint);font-size:13px;}
+
+/* ===== Chips (settings) ===== */
+.chiplist{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px;}
+.chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface-3);border:1px solid var(--line);
+  border-radius:20px;padding:5px 6px 5px 12px;font-family:var(--font-mono);font-size:12px;
+}
+.chip button{background:none;border:none;color:var(--text-faint);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;}
+.chip button:hover{background:rgba(248,113,113,.2);color:var(--red);}
+.add-row{display:flex;gap:8px;}
+.add-row input{flex:1;}
+
+.toast{
+  position:fixed;bottom:22px;right:22px;
+  background:var(--surface-3);border:1px solid var(--line);
+  border-left:3px solid var(--green);
+  color:var(--text);padding:12px 16px;border-radius:8px;
+  font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  transform:translateY(20px);opacity:0;transition:all .25s ease;
+  pointer-events:none;z-index:50;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+
+.section-title{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin:22px 0 10px;}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.hint{font-size:11.5px;color:var(--text-faint);margin-top:6px;}
+.filters{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.filters .field{min-width:160px;flex:0 0 auto;}
+.table-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;}
+
+@media (max-width:900px){
+  .app{flex-direction:column;}
+  .sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;align-items:center;}
+  .brand{border-bottom:none;border-right:1px solid var(--line);margin:0 10px 0 0;padding:0 14px 0 4px;}
+  .nav{flex-direction:row;}
+  .nav-spacer{display:none;}
+  .sidebar-foot{display:none;}
+  .main{padding:16px;}
+  .session-bar{grid-template-columns:1fr 1fr;}
+  .grid-2{grid-template-columns:1fr;}
+  .settings-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></svg></div>
+      <div class="brand-text">Proteksi Gardu<span>HAR DIST · UP3 MERAUKE</span></div>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-tab="fuselink">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M7 12h1l1.5-3 2 6 2-6 1.5 3h1"/></svg>
+        Fuse Link (MV)
+      </button>
+      <button class="nav-btn" data-tab="nhfuse">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="6" y="5" width="12" height="14" rx="1.5"/><line x1="12" y1="1" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+        NH/NT Fuse (LV)
+      </button>
+      <button class="nav-btn" data-tab="skema">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="4" cy="12" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="20" cy="12" r="2"/><path d="M6 12h2m2.4-4.6L12 8m0 8-1.6-2.6M14 12h4"/></svg>
+        Skema Proteksi
+      </button>
+      <button class="nav-btn" data-tab="riwayat">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        Riwayat
+      </button>
+      <button class="nav-btn" data-tab="pengaturan">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="#0A0F1A"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="#0A0F1A"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="#0A0F1A"/></svg>
+        Pengaturan
+      </button>
+    </nav>
+    <div class="nav-spacer"></div>
+    <div class="sidebar-foot">v1.0 · data tersimpan lokal di browser ini</div>
+  </aside>
+
+  <main class="main">
+    <section class="session-bar">
+      <div class="field">
+        <label>Nama Petugas</label>
+        <input id="inPetugas" type="text" placeholder="cth. Spark">
+      </div>
+      <div class="field">
+        <label>ULP</label>
+        <select id="inUlp"></select>
+      </div>
+      <div class="field">
+        <label>Nama / ID Gardu</label>
+        <input id="inGardu" type="text" placeholder="cth. GT-KRK 015">
+      </div>
+      <div class="field">
+        <label>Daya Trafo (kVA)</label>
+        <input id="inKva" class="mono" type="number" min="0" step="1" value="160">
+      </div>
+    </section>
+
+    <!-- TAB: FUSE LINK -->
+    <section class="tab-content active" id="tab-fuselink">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Kalkulator Fuse Link — Sisi MV (FCO)</h2>
+          <p class="sub">Perhitungan arus nominal trafo sisi primer &amp; rekomendasi rating fuse link Fuse Cut Out.</p>
+          <div class="info-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="16.3" r="0.6" fill="#A9C6FF"/></svg>
+            Nilai default &amp; tabel rating fuse link bersifat acuan umum, dapat diubah di tab Pengaturan. Sesuaikan dengan SOP / SPLN yang berlaku di unit Anda sebelum digunakan di lapangan.
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Tegangan Primer (kV)</label>
+              <input id="mvVoltage" class="mono" type="number" min="0" step="0.1" value="20">
+            </div>
+            <div class="field">
+              <label>Faktor Pengali Keamanan</label>
+              <input id="mvFactor" class="mono" type="number" min="1" step="0.05" value="1.5">
+            </div>
+          </div>
+          <div class="readout" id="mvReadout"></div>
+          <div style="margin-top:14px;display:flex;gap:10px;">
+            <button class="btn btn-primary" id="btnSaveMv">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              Simpan ke Riwayat
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Tabel Rating Fuse Link Standar</h2>
+          <p class="sub">Rating diurutkan naik, dipakai untuk pembulatan ke atas otomatis. Dapat diedit di tab Pengaturan.</p>
+          <div id="mvTableView" style="font-family:var(--font-mono);font-size:13px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: NH/NT FUSE -->
+    <section class="tab-content" id="tab-nhfuse">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Kalkulator NH/NT Fuse — Sisi LV (PHB-TR)</h2>
+          <p class="sub">Perhitungan arus nominal trafo sisi sekunder &amp; rekomendasi rating NH/NT fuse, total maupun per jurusan.</p>
+          <div class="row">
+            <div class="field">
+              <label>Tegangan Sekunder (V)</label>
+              <input id="lvVoltage" class="mono" type="number" min="0" step="1" value="400">
+            </div>
+            <div class="field">
+              <label>Faktor Pengali Keamanan</label>
+              <input id="lvFactor" class="mono" type="number" min="1" step="0.05" value="1.25">
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <div class="field">
+              <label>Jumlah Jurusan PHB-TR</label>
+              <input id="lvJurusan" class="mono" type="number" min="1" step="1" value="4">
+            </div>
+          </div>
+          <div class="readout" id="lvReadout"></div>
+          <p class="hint">Asumsi pembagian beban merata antar jurusan — gunakan sebagai estimasi perencanaan, verifikasi dengan pengukuran arus aktual per jurusan di lapangan.</p>
+          <div style="margin-top:8px;display:flex;gap:10px;">
+            <button class="btn btn-primary" id="btnSaveLv">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              Simpan ke Riwayat
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Tabel Rating NH/NT Fuse Standar</h2>
+          <p class="sub">Rating diurutkan naik, dipakai untuk pembulatan ke atas otomatis. Dapat diedit di tab Pengaturan.</p>
+          <div id="lvTableView" style="font-family:var(--font-mono);font-size:13px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: SKEMA PROTEKSI -->
+    <section class="tab-content" id="tab-skema">
+      <div class="card">
+        <h2>Rangkaian / Skema Proteksi Gardu</h2>
+        <p class="sub">Diagram satu garis (single line) menampilkan hasil kalkulasi MV &amp; LV secara langsung, ditambah parameter proteksi pelengkap.</p>
+        <div class="sld-wrap">
+          <div class="sld">
+            <div class="node">
+              <div class="node-title"><span class="dot" id="dotLa"></span> Lightning Arrester</div>
+              <div class="node-row"><span class="l">Rating</span><span id="ndLa">—</span></div>
+            </div>
+            <div class="connector"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="node">
+              <div class="node-title"><span class="dot" id="dotFco"></span> FCO + Fuse Link</div>
+              <div class="node-row"><span class="l">In primer</span><span id="ndInPrimer">—</span></div>
+              <div class="node-row"><span class="l">Fuse Link</span><span id="ndFuseLink">—</span></div>
+            </div>
+            <div class="connector"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="node">
+              <div class="node-title"><span class="dot green"></span> Trafo Distribusi</div>
+              <div class="node-row"><span class="l">Daya</span><span id="ndKva">—</span></div>
+              <div class="node-row"><span class="l">V Primer/Sek.</span><span id="ndVRatio">—</span></div>
+            </div>
+            <div class="connector"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="node">
+              <div class="node-title"><span class="dot" id="dotPhb"></span> PHB-TR (NH Fuse)</div>
+              <div class="node-row"><span class="l">In sekunder</span><span id="ndInSek">—</span></div>
+              <div class="node-row"><span class="l">NH Utama</span><span id="ndNhUtama">—</span></div>
+              <div class="node-row"><span class="l">NH / jurusan</span><span id="ndNhJurusan">—</span></div>
+            </div>
+            <div class="connector"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="node">
+              <div class="node-title"><span class="dot green"></span> Jaringan TR / Pelanggan</div>
+              <div class="node-row"><span class="l">Jml. jurusan</span><span id="ndJurusan">—</span></div>
+            </div>
+          </div>
+          <div class="branch-down">
+            <div class="node ground">
+              <div class="node-title"><span class="dot" id="dotGround"></span> Pentanahan (Grounding)</div>
+              <div class="node-row"><span class="l">Tahanan terukur</span><span id="ndGroundVal">—</span></div>
+              <div class="node-row"><span class="l">Status</span><span id="ndGroundStatus">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Parameter Proteksi Pelengkap</div>
+        <div class="row">
+          <div class="field">
+            <label>Rating Lightning Arrester</label>
+            <select id="inArrester"></select>
+          </div>
+          <div class="field">
+            <label>Tahanan Pentanahan Terukur (Ω)</label>
+            <input id="inGroundVal" class="mono" type="number" min="0" step="0.1" placeholder="cth. 2.5">
+          </div>
+          <div class="field">
+            <label>Batas Maks. Tahanan (Ω)</label>
+            <input id="inGroundThreshold" class="mono" type="number" min="0" step="0.1" value="5">
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label>Catatan Pemeriksaan</label>
+          <textarea id="inCatatan" rows="3" placeholder="cth. Kondisi visual baik, konektor LA dikencangkan ulang."></textarea>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn btn-primary" id="btnSaveSkema">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Simpan Rangkaian Proteksi ke Riwayat
+          </button>
+          <button class="btn" id="btnResetForm">Reset Form</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: RIWAYAT -->
+    <section class="tab-content" id="tab-riwayat">
+      <div class="card">
+        <h2>Riwayat Perhitungan</h2>
+        <p class="sub">Tersimpan secara lokal di browser perangkat ini (localStorage). Tidak tersinkron otomatis antar perangkat / pengguna lain.</p>
+        <div class="filters">
+          <div class="field">
+            <label>Cari (gardu / petugas)</label>
+            <input id="filterText" type="text" placeholder="ketik untuk mencari...">
+          </div>
+          <div class="field">
+            <label>Filter ULP</label>
+            <select id="filterUlp"><option value="">Semua ULP</option></select>
+          </div>
+        </div>
+        <div class="table-actions">
+          <span class="hint" id="historyCount"></span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-amber btn-sm" id="btnExportCsv">Ekspor CSV</button>
+            <button class="btn btn-danger btn-sm" id="btnClearHistory">Hapus Semua</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Waktu</th><th>Petugas</th><th>ULP</th><th>Gardu</th><th>kVA</th>
+                <th>Fuse Link</th><th>NH Utama</th><th>NH/Jurusan</th><th>Arrester</th><th>Grounding</th><th>Catatan</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+          <div class="empty-state" id="historyEmpty" style="display:none;">Belum ada riwayat tersimpan. Lakukan kalkulasi lalu klik "Simpan ke Riwayat".</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: PENGATURAN -->
+    <section class="tab-content" id="tab-pengaturan">
+      <div class="card">
+        <h2>Pengaturan &amp; Kustomisasi</h2>
+        <p class="sub">Sesuaikan tabel rating, daftar pilihan, dan nilai default sesuai standar / SOP unit Anda. Perubahan tersimpan otomatis di browser ini.</p>
+
+        <div class="settings-grid">
+          <div>
+            <div class="section-title">Daftar Rating Fuse Link (A)</div>
+            <div class="chiplist" id="chipsFuseLink"></div>
+            <div class="add-row">
+              <input id="addFuseLink" class="mono" type="number" min="0" step="1" placeholder="tambah rating, cth. 16">
+              <button class="btn btn-sm" id="btnAddFuseLink">Tambah</button>
+            </div>
+          </div>
+          <div>
+            <div class="section-title">Daftar Rating NH/NT Fuse (A)</div>
+            <div class="chiplist" id="chipsNh"></div>
+            <div class="add-row">
+              <input id="addNh" class="mono" type="number" min="0" step="1" placeholder="tambah rating, cth. 71">
+              <button class="btn btn-sm" id="btnAddNh">Tambah</button>
+            </div>
+          </div>
+          <div>
+            <div class="section-title">Daftar ULP</div>
+            <div class="chiplist" id="chipsUlp"></div>
+            <div class="add-row">
+              <input id="addUlp" type="text" placeholder="tambah ULP baru">
+              <button class="btn btn-sm" id="btnAddUlp">Tambah</button>
+            </div>
+          </div>
+          <div>
+            <div class="section-title">Daftar Rating Lightning Arrester</div>
+            <div class="chiplist" id="chipsArrester"></div>
+            <div class="add-row">
+              <input id="addArrester" type="text" placeholder="cth. 24kV/10kA">
+              <button class="btn btn-sm" id="btnAddArrester">Tambah</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Nilai Default</div>
+        <div class="row">
+          <div class="field">
+            <label>Tegangan Primer Default (kV)</label>
+            <input id="defVPrimer" class="mono" type="number" step="0.1">
+          </div>
+          <div class="field">
+            <label>Tegangan Sekunder Default (V)</label>
+            <input id="defVSekunder" class="mono" type="number" step="1">
+          </div>
+          <div class="field">
+            <label>Faktor Pengali MV Default</label>
+            <input id="defFactorMv" class="mono" type="number" step="0.05">
+          </div>
+          <div class="field">
+            <label>Faktor Pengali LV Default</label>
+            <input id="defFactorLv" class="mono" type="number" step="0.05">
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <div class="field">
+            <label>Jumlah Jurusan Default</label>
+            <input id="defJurusan" class="mono" type="number" step="1">
+          </div>
+          <div class="field">
+            <label>Batas Tahanan Pentanahan Default (Ω)</label>
+            <input id="defGroundThreshold" class="mono" type="number" step="0.1">
+          </div>
+        </div>
+
+        <div style="margin-top:18px;display:flex;gap:10px;">
+          <button class="btn btn-primary" id="btnSaveSettings">Simpan Pengaturan</button>
+          <button class="btn btn-danger" id="btnResetSettings">Kembalikan ke Default</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SETTINGS_KEY = "gardu_calc_settings_v1";
+  var HISTORY_KEY = "gardu_calc_history_v1";
+
+  var DEFAULTS = {
+    fuseLink: [1,2,3,5,6,8,10,12,15,20,25,30,40,50,65,80,100,140,200],
+    nhFuse: [25,32,40,50,63,80,100,125,160,200,224,250,315,355,400,425,500,630,800,1000,1250],
+    ulp: ["Merauke Kota","Kuprik","Kurik","Tanah Merah","Kepi"],
+    arrester: ["10kV/5kA","20kV/5kA","24kV/10kA","30kV/10kA"],
+    vPrimer: 20,
+    vSekunder: 400,
+    factorMv: 1.5,
+    factorLv: 1.25,
+    jurusan: 4,
+    groundThreshold: 5
+  };
+
+  function loadSettings(){
+    try{
+      var raw = localStorage.getItem(SETTINGS_KEY);
+      if(!raw) return JSON.parse(JSON.stringify(DEFAULTS));
+      var parsed = JSON.parse(raw);
+      var merged = JSON.parse(JSON.stringify(DEFAULTS));
+      for(var k in parsed){ merged[k] = parsed[k]; }
+      return merged;
+    }catch(e){ return JSON.parse(JSON.stringify(DEFAULTS)); }
+  }
+  function saveSettings(){
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+  function loadHistory(){
+    try{
+      var raw = localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveHistory(){
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
+
+  var settings = loadSettings();
+  var history = loadHistory();
+  var lastCalc = { mv:null, lv:null };
+
+  /* ===== Toast ===== */
+  var toastEl = document.getElementById('toast');
+  var toastTimer;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2400);
+  }
+
+  /* ===== Tab navigation ===== */
+  var navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      navBtns.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  /* ===== Helpers ===== */
+  function fmt(n, dec){
+    if(n === null || n === undefined || isNaN(n)) return "—";
+    return Number(n).toLocaleString('id-ID', {minimumFractionDigits:dec||0, maximumFractionDigits:dec||2});
+  }
+  function nextStandard(value, list){
+    var sorted = list.slice().sort(function(a,b){return a-b;});
+    for(var i=0;i<sorted.length;i++){
+      if(sorted[i] >= value) return sorted[i];
+    }
+    return null; // exceeds table
+  }
+  function fillSelect(sel, list, current){
+    sel.innerHTML = "";
+    list.forEach(function(v){
+      var o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      if(v === current) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+  function renderTags(list){
+    return list.map(function(v){ return '<span style="background:var(--surface-3);border:1px solid var(--line);border-radius:6px;padding:4px 9px;">'+v+' A</span>'; }).join('');
+  }
+
+  /* ===== Shared session fields ===== */
+  var elPetugas = document.getElementById('inPetugas');
+  var elUlp = document.getElementById('inUlp');
+  var elGardu = document.getElementById('inGardu');
+  var elKva = document.getElementById('inKva');
+
+  fillSelect(elUlp, settings.ulp);
+
+  /* ===== MV tab elements ===== */
+  var mvVoltage = document.getElementById('mvVoltage');
+  var mvFactor = document.getElementById('mvFactor');
+  var mvReadout = document.getElementById('mvReadout');
+  var mvTableView = document.getElementById('mvTableView');
+
+  /* ===== LV tab elements ===== */
+  var lvVoltage = document.getElementById('lvVoltage');
+  var lvFactor = document.getElementById('lvFactor');
+  var lvJurusan = document.getElementById('lvJurusan');
+  var lvReadout = document.getElementById('lvReadout');
+  var lvTableView = document.getElementById('lvTableView');
+
+  function applyDefaultsToForm(){
+    mvVoltage.value = settings.vPrimer;
+    mvFactor.value = settings.factorMv;
+    lvVoltage.value = settings.vSekunder;
+    lvFactor.value = settings.factorLv;
+    lvJurusan.value = settings.jurusan;
+    document.getElementById('inGroundThreshold').value = settings.groundThreshold;
+    fillSelect(document.getElementById('inArrester'), settings.arrester);
+  }
+
+  function calcMv(){
+    var kva = parseFloat(elKva.value) || 0;
+    var v = parseFloat(mvVoltage.value) || 0;
+    var factor = parseFloat(mvFactor.value) || 1;
+    var inPrimer = (v > 0) ? (kva / (Math.sqrt(3) * v)) : 0;
+    var flMin = inPrimer * factor;
+    var flRec = nextStandard(flMin, settings.fuseLink);
+    var result = {kva:kva, v:v, factor:factor, inPrimer:inPrimer, flMin:flMin, flRec:flRec};
+    lastCalc.mv = result;
+    return result;
+  }
+
+  function calcLv(){
+    var kva = parseFloat(elKva.value) || 0;
+    var v = parseFloat(lvVoltage.value) || 0;
+    var factor = parseFloat(lvFactor.value) || 1;
+    var jurusan = parseInt(lvJurusan.value) || 1;
+    var inSek = (v > 0) ? ((kva*1000) / (Math.sqrt(3) * v)) : 0;
+    var nhMinTotal = inSek * factor;
+    var nhRecUtama = nextStandard(nhMinTotal, settings.nhFuse);
+    var inPerJurusan = inSek / jurusan;
+    var nhMinJurusan = inPerJurusan * factor;
+    var nhRecJurusan = nextStandard(nhMinJurusan, settings.nhFuse);
+    var result = {kva:kva, v:v, factor:factor, jurusan:jurusan, inSek:inSek, nhMinTotal:nhMinTotal, nhRecUtama:nhRecUtama, inPerJurusan:inPerJurusan, nhRecJurusan:nhRecJurusan};
+    lastCalc.lv = result;
+    return result;
+  }
+
+  function rowHtml(k, v, cls){
+    return '<div class="readout-row"><span class="k">'+k+'</span><span class="v '+(cls||'')+'">'+v+'</span></div>';
+  }
+
+  function renderMv(){
+    var r = calcMv();
+    var flText = r.flRec !== null ? fmt(r.flRec,0) + ' A' : 'Di luar tabel (> ' + fmt(Math.max.apply(null,settings.fuseLink),0) + ' A)';
+    mvReadout.innerHTML =
+      rowHtml('Arus nominal primer (In)', fmt(r.inPrimer,2) + ' A') +
+      rowHtml('Kebutuhan minimum (In × faktor)', fmt(r.flMin,2) + ' A') +
+      rowHtml('Rekomendasi Fuse Link', flText, r.flRec!==null ? 'big ok' : 'big bad');
+    mvTableView.innerHTML = renderTags(settings.fuseLink);
+    renderSld();
+  }
+
+  function renderLv(){
+    var r = calcLv();
+    var nhUtamaText = r.nhRecUtama !== null ? fmt(r.nhRecUtama,0)+' A' : 'Di luar tabel';
+    var nhJurusanText = r.nhRecJurusan !== null ? fmt(r.nhRecJurusan,0)+' A' : 'Di luar tabel';
+    lvReadout.innerHTML =
+      rowHtml('Arus nominal sekunder total (In)', fmt(r.inSek,2) + ' A') +
+      rowHtml('Kebutuhan NH utama minimum', fmt(r.nhMinTotal,2) + ' A') +
+      rowHtml('Rekomendasi NH Fuse Utama', nhUtamaText, 'big ok') +
+      rowHtml('Arus per jurusan (estimasi)', fmt(r.inPerJurusan,2) + ' A') +
+      rowHtml('Rekomendasi NH Fuse / Jurusan', nhJurusanText, 'big');
+    lvTableView.innerHTML = renderTags(settings.nhFuse);
+    renderSld();
+  }
+
+  function renderSld(){
+    var mv = lastCalc.mv, lv = lastCalc.lv;
+    document.getElementById('ndKva').textContent = (parseFloat(elKva.value)||0) + ' kVA';
+    document.getElementById('ndVRatio').textContent = (mv?mv.v:'-') + 'kV / ' + (lv?lv.v:'-') + 'V';
+
+    if(mv){
+      document.getElementById('ndInPrimer').textContent = fmt(mv.inPrimer,2) + ' A';
+      document.getElementById('ndFuseLink').textContent = mv.flRec!==null ? fmt(mv.flRec,0)+' A' : '> tabel';
+      document.getElementById('dotFco').className = 'dot ' + (mv.flRec!==null ? 'green' : 'red');
+    }
+    if(lv){
+      document.getElementById('ndInSek').textContent = fmt(lv.inSek,2) + ' A';
+      document.getElementById('ndNhUtama').textContent = lv.nhRecUtama!==null ? fmt(lv.nhRecUtama,0)+' A' : '> tabel';
+      document.getElementById('ndNhJurusan').textContent = lv.nhRecJurusan!==null ? fmt(lv.nhRecJurusan,0)+' A' : '> tabel';
+      document.getElementById('ndJurusan').textContent = lv.jurusan + ' jurusan';
+      document.getElementById('dotPhb').className = 'dot ' + (lv.nhRecUtama!==null ? 'green' : 'red');
+    }
+
+    var arresterVal = document.getElementById('inArrester').value;
+    document.getElementById('ndLa').textContent = arresterVal || '—';
+    document.getElementById('dotLa').className = 'dot ' + (arresterVal ? 'amber' : '');
+
+    var gVal = parseFloat(document.getElementById('inGroundVal').value);
+    var gThreshold = parseFloat(document.getElementById('inGroundThreshold').value) || settings.groundThreshold;
+    var gEl = document.getElementById('ndGroundVal');
+    var sEl = document.getElementById('ndGroundStatus');
+    var dEl = document.getElementById('dotGround');
+    if(!isNaN(gVal)){
+      gEl.textContent = fmt(gVal,2) + ' Ω';
+      if(gVal <= gThreshold){
+        sEl.textContent = 'BAIK'; sEl.className='v ok'; dEl.className='dot green';
+      }else{
+        sEl.textContent = 'PERLU PERBAIKAN'; sEl.className='v bad'; dEl.className='dot red';
+      }
+    } else {
+      gEl.textContent='—'; sEl.textContent='—'; sEl.className='v'; dEl.className='dot';
+    }
+  }
+
+  /* ===== Save to history ===== */
+  function buildRecord(jenis){
+    var mv = lastCalc.mv || calcMv();
+    var lv = lastCalc.lv || calcLv();
+    return {
+      id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+      ts: new Date().toISOString(),
+      jenis: jenis,
+      petugas: elPetugas.value || '-',
+      ulp: elUlp.value || '-',
+      gardu: elGardu.value || '-',
+      kva: parseFloat(elKva.value) || 0,
+      inPrimer: mv.inPrimer, fuseLink: mv.flRec,
+      inSekunder: lv.inSek, nhUtama: lv.nhRecUtama, nhJurusan: lv.nhRecJurusan, jurusan: lv.jurusan,
+      arrester: document.getElementById('inArrester').value || '-',
+      groundVal: document.getElementById('inGroundVal').value || '',
+      groundThreshold: document.getElementById('inGroundThreshold').value || settings.groundThreshold,
+      catatan: document.getElementById('inCatatan').value || ''
+    };
+  }
+  function pushHistory(rec){
+    history.unshift(rec);
+    saveHistory();
+    renderHistory();
+    toast('Tersimpan ke riwayat.');
+  }
+
+  document.getElementById('btnSaveMv').addEventListener('click', function(){ pushHistory(buildRecord('Fuse Link (MV)')); });
+  document.getElementById('btnSaveLv').addEventListener('click', function(){ pushHistory(buildRecord('NH/NT Fuse (LV)')); });
+  document.getElementById('btnSaveSkema').addEventListener('click', function(){ pushHistory(buildRecord('Skema Proteksi Lengkap')); });
+  document.getElementById('btnResetForm').addEventListener('click', function(){
+    document.getElementById('inGroundVal').value='';
+    document.getElementById('inCatatan').value='';
+    document.getElementById('inArrester').selectedIndex = 0;
+    renderSld();
+    toast('Form skema direset.');
+  });
+
+  /* ===== History rendering ===== */
+  var historyBody = document.getElementById('historyBody');
+  var historyEmpty = document.getElementById('historyEmpty');
+  var historyCount = document.getElementById('historyCount');
+  var filterText = document.getElementById('filterText');
+  var filterUlp = document.getElementById('filterUlp');
+
+  function fillFilterUlp(){
+    filterUlp.innerHTML = '<option value="">Semua ULP</option>';
+    settings.ulp.forEach(function(u){
+      var o=document.createElement('option'); o.value=u; o.textContent=u; filterUlp.appendChild(o);
+    });
+  }
+
+  function renderHistory(){
+    var q = (filterText.value || '').toLowerCase();
+    var ulpF = filterUlp.value;
+    var filtered = history.filter(function(h){
+      var matchText = !q || (h.gardu||'').toLowerCase().indexOf(q)>=0 || (h.petugas||'').toLowerCase().indexOf(q)>=0;
+      var matchUlp = !ulpF || h.ulp === ulpF;
+      return matchText && matchUlp;
+    });
+    historyCount.textContent = filtered.length + ' dari ' + history.length + ' catatan';
+    historyBody.innerHTML = '';
+    if(filtered.length === 0){
+      historyEmpty.style.display='block';
+    } else {
+      historyEmpty.style.display='none';
+      filtered.forEach(function(h){
+        var tr = document.createElement('tr');
+        var dt = new Date(h.ts);
+        var ground = h.groundVal ? h.groundVal+' Ω' : '-';
+        tr.innerHTML =
+          '<td>'+dt.toLocaleString('id-ID')+'</td>'+
+          '<td>'+h.petugas+'</td>'+
+          '<td>'+h.ulp+'</td>'+
+          '<td>'+h.gardu+'</td>'+
+          '<td>'+h.kva+'</td>'+
+          '<td>'+(h.fuseLink!==null&&h.fuseLink!==undefined?h.fuseLink+' A':'-')+'</td>'+
+          '<td>'+(h.nhUtama!==null&&h.nhUtama!==undefined?h.nhUtama+' A':'-')+'</td>'+
+          '<td>'+(h.nhJurusan!==null&&h.nhJurusan!==undefined?h.nhJurusan+' A':'-')+'</td>'+
+          '<td>'+h.arrester+'</td>'+
+          '<td>'+ground+'</td>'+
+          '<td style="max-width:160px;white-space:normal;">'+(h.catatan||'-')+'</td>'+
+          '<td><button class="btn btn-sm btn-danger" data-id="'+h.id+'">Hapus</button></td>';
+        historyBody.appendChild(tr);
+      });
+      historyBody.querySelectorAll('button[data-id]').forEach(function(b){
+        b.addEventListener('click', function(){
+          history = history.filter(function(h){ return h.id !== b.dataset.id; });
+          saveHistory(); renderHistory();
+          toast('Catatan dihapus.');
+        });
+      });
+    }
+  }
+  filterText.addEventListener('input', renderHistory);
+  filterUlp.addEventListener('change', renderHistory);
+
+  document.getElementById('btnClearHistory').addEventListener('click', function(){
+    if(history.length===0) return;
+    if(confirm('Hapus seluruh riwayat? Tindakan ini tidak dapat dibatalkan.')){
+      history = []; saveHistory(); renderHistory();
+      toast('Seluruh riwayat dihapus.');
+    }
+  });
+  document.getElementById('btnExportCsv').addEventListener('click', function(){
+    if(history.length===0){ toast('Tidak ada data untuk diekspor.'); return; }
+    var headers = ['Waktu','Jenis','Petugas','ULP','Gardu','kVA','In Primer (A)','Fuse Link (A)','In Sekunder (A)','NH Utama (A)','NH per Jurusan (A)','Jumlah Jurusan','Arrester','Tahanan Grounding (Ohm)','Batas Grounding (Ohm)','Catatan'];
+    var lines = [headers.join(';')];
+    history.forEach(function(h){
+      var row = [
+        new Date(h.ts).toLocaleString('id-ID'), h.jenis, h.petugas, h.ulp, h.gardu, h.kva,
+        (h.inPrimer||0).toFixed(2), h.fuseLink||'', (h.inSekunder||0).toFixed(2), h.nhUtama||'', h.nhJurusan||'',
+        h.jurusan||'', h.arrester, h.groundVal||'', h.groundThreshold||'', (h.catatan||'').replace(/;/g,',')
+      ];
+      lines.push(row.join(';'));
+    });
+    var blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'riwayat-proteksi-gardu.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('CSV diunduh.');
+  });
+
+  /* ===== Settings tab ===== */
+  function renderChips(containerId, list, removeCb){
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    list.forEach(function(v, idx){
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = '<span>'+v+(containerId==='chipsFuseLink'||containerId==='chipsNh' ? ' A':'')+'</span>';
+      var b = document.createElement('button');
+      b.textContent = '×';
+      b.addEventListener('click', function(){ removeCb(idx); });
+      chip.appendChild(b);
+      el.appendChild(chip);
+    });
+  }
+  function renderAllChips(){
+    renderChips('chipsFuseLink', settings.fuseLink.slice().sort(function(a,b){return a-b;}), function(idx){
+      var sorted = settings.fuseLink.slice().sort(function(a,b){return a-b;});
+      var val = sorted[idx];
+      settings.fuseLink = settings.fuseLink.filter(function(v){return v!==val;});
+      saveSettings(); renderAllChips(); renderMv(); renderLv();
+    });
+    renderChips('chipsNh', settings.nhFuse.slice().sort(function(a,b){return a-b;}), function(idx){
+      var sorted = settings.nhFuse.slice().sort(function(a,b){return a-b;});
+      var val = sorted[idx];
+      settings.nhFuse = settings.nhFuse.filter(function(v){return v!==val;});
+      saveSettings(); renderAllChips(); renderMv(); renderLv();
+    });
+    renderChips('chipsUlp', settings.ulp, function(idx){
+      settings.ulp.splice(idx,1); saveSettings(); renderAllChips();
+      fillSelect(elUlp, settings.ulp); fillFilterUlp();
+    });
+    renderChips('chipsArrester', settings.arrester, function(idx){
+      settings.arrester.splice(idx,1); saveSettings(); renderAllChips();
+      fillSelect(document.getElementById('inArrester'), settings.arrester);
+    });
+  }
+
+  document.getElementById('btnAddFuseLink').addEventListener('click', function(){
+    var inp = document.getElementById('addFuseLink');
+    var v = parseFloat(inp.value);
+    if(!isNaN(v) && v>0 && settings.fuseLink.indexOf(v)===-1){
+      settings.fuseLink.push(v); saveSettings(); renderAllChips(); renderMv(); renderLv(); inp.value='';
+    }
+  });
+  document.getElementById('btnAddNh').addEventListener('click', function(){
+    var inp = document.getElementById('addNh');
+    var v = parseFloat(inp.value);
+    if(!isNaN(v) && v>0 && settings.nhFuse.indexOf(v)===-1){
+      settings.nhFuse.push(v); saveSettings(); renderAllChips(); renderMv(); renderLv(); inp.value='';
+    }
+  });
+  document.getElementById('btnAddUlp').addEventListener('click', function(){
+    var inp = document.getElementById('addUlp');
+    var v = inp.value.trim();
+    if(v && settings.ulp.indexOf(v)===-1){
+      settings.ulp.push(v); saveSettings(); renderAllChips();
+      fillSelect(elUlp, settings.ulp); fillFilterUlp(); inp.value='';
+    }
+  });
+  document.getElementById('btnAddArrester').addEventListener('click', function(){
+    var inp = document.getElementById('addArrester');
+    var v = inp.value.trim();
+    if(v && settings.arrester.indexOf(v)===-1){
+      settings.arrester.push(v); saveSettings(); renderAllChips();
+      fillSelect(document.getElementById('inArrester'), settings.arrester); inp.value='';
+    }
+  });
+
+  function fillDefaultsForm(){
+    document.getElementById('defVPrimer').value = settings.vPrimer;
+    document.getElementById('defVSekunder').value = settings.vSekunder;
+    document.getElementById('defFactorMv').value = settings.factorMv;
+    document.getElementById('defFactorLv').value = settings.factorLv;
+    document.getElementById('defJurusan').value = settings.jurusan;
+    document.getElementById('defGroundThreshold').value = settings.groundThreshold;
+  }
+  document.getElementById('btnSaveSettings').addEventListener('click', function(){
+    settings.vPrimer = parseFloat(document.getElementById('defVPrimer').value) || settings.vPrimer;
+    settings.vSekunder = parseFloat(document.getElementById('defVSekunder').value) || settings.vSekunder;
+    settings.factorMv = parseFloat(document.getElementById('defFactorMv').value) || settings.factorMv;
+    settings.factorLv = parseFloat(document.getElementById('defFactorLv').value) || settings.factorLv;
+    settings.jurusan = parseInt(document.getElementById('defJurusan').value) || settings.jurusan;
+    settings.groundThreshold = parseFloat(document.getElementById('defGroundThreshold').value) || settings.groundThreshold;
+    saveSettings();
+    applyDefaultsToForm();
+    renderMv(); renderLv();
+    toast('Pengaturan disimpan.');
+  });
+  document.getElementById('btnResetSettings').addEventListener('click', function(){
+    if(confirm('Kembalikan semua pengaturan ke nilai default bawaan? Riwayat tidak akan terhapus.')){
+      settings = JSON.parse(JSON.stringify(DEFAULTS));
+      saveSettings();
+      fillSelect(elUlp, settings.ulp);
+      fillFilterUlp();
+      applyDefaultsToForm();
+      fillDefaultsForm();
+      renderAllChips();
+      renderMv(); renderLv();
+      toast('Pengaturan dikembalikan ke default.');
+    }
+  });
+
+  /* ===== Wire up recalculation triggers ===== */
+  [elKva, mvVoltage, mvFactor].forEach(function(el){ el.addEventListener('input', renderMv); });
+  [elKva, lvVoltage, lvFactor, lvJurusan].forEach(function(el){ el.addEventListener('input', renderLv); });
+  document.getElementById('inArrester').addEventListener('change', renderSld);
+  document.getElementById('inGroundVal').addEventListener('input', renderSld);
+  document.getElementById('inGroundThreshold').addEventListener('input', renderSld);
+
+  /* ===== Init ===== */
+  applyDefaultsToForm();
+  fillDefaultsForm();
+  fillFilterUlp();
+  renderAllChips();
+  renderMv();
+  renderLv();
+  renderHistory();
+
+})();
+</script>
+</body>
+</html>
