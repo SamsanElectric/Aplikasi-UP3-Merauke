@@ -44,7 +44,7 @@
         <input
           type="text"
           id="searchInput"
-          placeholder="Cari recloser, relay, pemutus, OCR, GFR..."
+          placeholder="Cari recloser, relay, pemutus..."
         />
       </div>
 
@@ -76,41 +76,40 @@
         <div class="badge">UP3 MERAUKE</div>
       </header>
 
-      <!-- SUMMARY -->
-      <section class="summary-grid">
-        <div class="summary-card">
-          <span>Lokasi / Recloser</span>
-          <strong id="sumLokasi">-</strong>
+      <!-- HERO ACTIVE -->
+      <section class="hero-active">
+        <div class="hero-left">
+          <span class="hero-label">REcloser / Lokasi Aktif</span>
+          <h3 id="sumLokasi">-</h3>
+          <div class="hero-meta">
+            <span class="meta-chip" id="sumZona">Zona -</span>
+            <span class="meta-chip" id="sumPemutus">Pemutus -</span>
+            <span class="meta-chip" id="sumCt">CT -</span>
+            <span class="meta-chip" id="sumRelay">Relay -</span>
+            <span class="meta-chip" id="sumBeban">Beban -</span>
+          </div>
         </div>
-        <div class="summary-card">
-          <span>Pemutus</span>
-          <strong id="sumPemutus">-</strong>
-        </div>
-        <div class="summary-card">
-          <span>CT Ratio</span>
-          <strong id="sumCt">-</strong>
-        </div>
-        <div class="summary-card">
-          <span>Relay</span>
-          <strong id="sumRelay">-</strong>
-        </div>
-        <div class="summary-card">
-          <span>Beban</span>
-          <strong id="sumBeban">-</strong>
-        </div>
-        <div class="summary-card">
-          <span>Zona Aktif</span>
-          <strong id="sumZona">-</strong>
+        <div class="hero-actions">
+          <button class="quick-btn active" data-quick="all">Semua</button>
+          <button class="quick-btn" data-quick="ocr">OCR</button>
+          <button class="quick-btn" data-quick="gfr">GFR</button>
+          <button class="quick-btn" data-quick="extra">Proteksi Tambahan</button>
         </div>
       </section>
 
-      <!-- CONTENT GRID -->
-      <section class="content-grid">
-        <!-- LEFT PANEL -->
+      <!-- CONTENT -->
+      <section class="interactive-grid">
+        <!-- LEFT : MASTER LIST -->
         <div class="left-panel">
           <div class="card">
-            <div class="card-title">Daftar Setting Proteksi</div>
-            <div class="table-wrap">
+            <div class="card-head">
+              <div>
+                <div class="card-title">Daftar Recloser / Segment</div>
+                <div class="card-subtitle">Klik salah satu baris untuk melihat detail setting</div>
+              </div>
+            </div>
+
+            <div class="table-wrap desktop-table">
               <table id="dataTable">
                 <thead>
                   <tr>
@@ -119,126 +118,141 @@
                     <th>Zona</th>
                     <th>Pemutus</th>
                     <th>Merek</th>
-                    <th>Tipe</th>
-                    <th>CT Ratio</th>
                     <th>Relay</th>
-                    <th>Beban</th>
-                    <th>OCR Low</th>
-                    <th>GFR Low</th>
+                    <th>OCR</th>
+                    <th>GFR</th>
                   </tr>
                 </thead>
                 <tbody id="tableBody">
                   <tr>
-                    <td colspan="11" style="text-align:center;padding:18px;">
+                    <td colspan="8" style="text-align:center;padding:18px;">
                       Memuat data...
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+
+            <!-- mobile list -->
+            <div class="mobile-list" id="mobileList"></div>
           </div>
         </div>
 
-        <!-- RIGHT PANEL -->
+        <!-- RIGHT : DETAIL -->
         <div class="right-panel">
-          <!-- INFORMASI UMUM -->
+          <!-- STATUS -->
           <div class="card">
-            <div class="card-title">Informasi Umum</div>
-            <div class="info-grid" id="infoGrid">
-              <div class="info-item"><span>Lokasi / Recloser</span><strong>-</strong></div>
-              <div class="info-item"><span>Zona Aktif</span><strong>-</strong></div>
-              <div class="info-item"><span>Pemutus</span><strong>-</strong></div>
-              <div class="info-item"><span>Merek</span><strong>-</strong></div>
-              <div class="info-item"><span>Tipe</span><strong>-</strong></div>
-              <div class="info-item"><span>CT Ratio</span><strong>-</strong></div>
-              <div class="info-item"><span>Relay / Arus</span><strong>-</strong></div>
-              <div class="info-item"><span>Beban (kW)</span><strong>-</strong></div>
+            <div class="card-title">Status Setting</div>
+            <div class="status-grid">
+              <div class="status-pill">
+                <span>OCR</span>
+                <strong id="statusOCR">-</strong>
+              </div>
+              <div class="status-pill">
+                <span>GFR</span>
+                <strong id="statusGFR">-</strong>
+              </div>
+              <div class="status-pill">
+                <span>CT Ratio</span>
+                <strong id="statusCT">-</strong>
+              </div>
+              <div class="status-pill">
+                <span>Proteksi Tambahan</span>
+                <strong id="statusExtra">-</strong>
+              </div>
             </div>
           </div>
 
-          <!-- ZONA / SEGMENT -->
+          <!-- TABS -->
           <div class="card">
-            <div class="card-title">Zona / Segment Proteksi</div>
-            <div class="zone-grid" id="zoneGrid">
-              <div class="zone"><span>Z1</span><strong>-</strong></div>
-              <div class="zone"><span>Z2</span><strong>-</strong></div>
-              <div class="zone"><span>Z3</span><strong>-</strong></div>
-              <div class="zone"><span>Z4</span><strong>-</strong></div>
-              <div class="zone"><span>Z5</span><strong>-</strong></div>
-              <div class="zone"><span>Z6</span><strong>-</strong></div>
+            <div class="detail-tabs">
+              <button class="tab-btn active" data-tab="tabInfo">Info Umum</button>
+              <button class="tab-btn" data-tab="tabZona">Zona</button>
+              <button class="tab-btn" data-tab="tabOCR">OCR</button>
+              <button class="tab-btn" data-tab="tabGFR">GFR</button>
+              <button class="tab-btn" data-tab="tabExtra">Proteksi Tambahan</button>
             </div>
-          </div>
 
-          <!-- OCR -->
-          <div class="card">
-            <div class="card-title blue">OCR</div>
-            <div class="table-wrap">
-              <table class="detail-table">
-                <thead>
-                  <tr>
-                    <th colspan="3">LOW SET</th>
-                    <th colspan="3">HIGH SET</th>
-                  </tr>
-                  <tr>
-                    <th>I&gt;</th>
-                    <th>TMS</th>
-                    <th>KURVA</th>
-                    <th>I&gt;&gt;</th>
-                    <th>DELAY</th>
-                    <th>KURVA</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr id="ocrRow">
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                  </tr>
-                </tbody>
-              </table>
+            <!-- TAB CONTENT -->
+            <div class="tab-content active" id="tabInfo">
+              <div class="info-grid" id="infoGrid">
+                <div class="info-item"><span>Lokasi / Recloser</span><strong>-</strong></div>
+                <div class="info-item"><span>Zona Aktif</span><strong>-</strong></div>
+                <div class="info-item"><span>Pemutus</span><strong>-</strong></div>
+                <div class="info-item"><span>Merek</span><strong>-</strong></div>
+                <div class="info-item"><span>Tipe</span><strong>-</strong></div>
+                <div class="info-item"><span>CT Ratio</span><strong>-</strong></div>
+                <div class="info-item"><span>Relay / Arus</span><strong>-</strong></div>
+                <div class="info-item"><span>Beban (kW)</span><strong>-</strong></div>
+              </div>
             </div>
-          </div>
 
-          <!-- GFR -->
-          <div class="card">
-            <div class="card-title green">GFR</div>
-            <div class="table-wrap">
-              <table class="detail-table">
-                <thead>
-                  <tr>
-                    <th colspan="3">LOW SET</th>
-                    <th colspan="3">HIGH SET</th>
-                  </tr>
-                  <tr>
-                    <th>I&gt;</th>
-                    <th>TMS</th>
-                    <th>KURVA</th>
-                    <th>I&gt;&gt;</th>
-                    <th>DELAY</th>
-                    <th>KURVA</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr id="gfrRow">
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="tab-content" id="tabZona">
+              <div class="zone-grid" id="zoneGrid">
+                <div class="zone"><span>Z1</span><strong>-</strong></div>
+                <div class="zone"><span>Z2</span><strong>-</strong></div>
+                <div class="zone"><span>Z3</span><strong>-</strong></div>
+                <div class="zone"><span>Z4</span><strong>-</strong></div>
+                <div class="zone"><span>Z5</span><strong>-</strong></div>
+                <div class="zone"><span>Z6</span><strong>-</strong></div>
+              </div>
             </div>
-          </div>
 
-          <!-- PROTEKSI TAMBAHAN -->
-          <div class="card">
-            <div class="card-title orange">Proteksi Tambahan</div>
-            <div class="extra-box" id="extraBox">Belum ada data</div>
+            <div class="tab-content" id="tabOCR">
+              <div class="table-wrap">
+                <table class="detail-table">
+                  <thead>
+                    <tr>
+                      <th colspan="3">LOW SET</th>
+                      <th colspan="3">HIGH SET</th>
+                    </tr>
+                    <tr>
+                      <th>I&gt;</th>
+                      <th>TMS</th>
+                      <th>KURVA</th>
+                      <th>I&gt;&gt;</th>
+                      <th>DELAY</th>
+                      <th>KURVA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr id="ocrRow">
+                      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-content" id="tabGFR">
+              <div class="table-wrap">
+                <table class="detail-table">
+                  <thead>
+                    <tr>
+                      <th colspan="3">LOW SET</th>
+                      <th colspan="3">HIGH SET</th>
+                    </tr>
+                    <tr>
+                      <th>I&gt;</th>
+                      <th>TMS</th>
+                      <th>KURVA</th>
+                      <th>I&gt;&gt;</th>
+                      <th>DELAY</th>
+                      <th>KURVA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr id="gfrRow">
+                      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-content" id="tabExtra">
+              <div class="extra-box" id="extraBox">Belum ada data</div>
+            </div>
           </div>
         </div>
       </section>
@@ -246,5 +260,45 @@
   </div>
 
   <script src="script.js"></script>
+  <script>
+    // Tabs interaktif
+    document.addEventListener("click", function(e){
+      if(e.target.classList.contains("tab-btn")){
+        document.querySelectorAll(".tab-btn").forEach(btn=>btn.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(tab=>tab.classList.remove("active"));
+        e.target.classList.add("active");
+        const target = document.getElementById(e.target.dataset.tab);
+        if(target) target.classList.add("active");
+      }
+
+      if(e.target.classList.contains("quick-btn")){
+        document.querySelectorAll(".quick-btn").forEach(btn=>btn.classList.remove("active"));
+        e.target.classList.add("active");
+
+        const mode = e.target.dataset.quick;
+
+        if(mode === "ocr"){
+          activateTab("tabOCR");
+        }else if(mode === "gfr"){
+          activateTab("tabGFR");
+        }else if(mode === "extra"){
+          activateTab("tabExtra");
+        }else{
+          activateTab("tabInfo");
+        }
+      }
+    });
+
+    function activateTab(id){
+      document.querySelectorAll(".tab-btn").forEach(btn=>btn.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(tab=>tab.classList.remove("active"));
+
+      const targetTab = document.getElementById(id);
+      if(targetTab) targetTab.classList.add("active");
+
+      const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+      if(btn) btn.classList.add("active");
+    }
+  </script>
 </body>
 </html>
