@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setting Proteksi Recloser</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1>SETTING PROTEKSI</h1>
+          <p>Recloser / Segment / Zona</p>
+        </div>
+      </div>
+      <div class="filter-card">
+        <label>Pilih Lokasi / Recloser</label>
+        <select id="lokasiFilter"><option value="">Semua Lokasi</option></select>
+      </div>
+      <div class="filter-card">
+        <label>Pilih Pemutus / Bay</label>
+        <select id="pemutusFilter"><option value="">Semua Pemutus</option></select>
+      </div>
+      <div class="filter-card">
+        <label>Cari Cepat</label>
+        <input type="text" id="searchInput" placeholder="mis. BPD / Mako / Makalimau" />
+      </div>
+      <div class="stats">
+        <div class="stat-box"><span>Total Data</span><strong id="totalData">0</strong></div>
+        <div class="stat-box"><span>Lokasi Aktif</span><strong id="activeLokasi">-</strong></div>
+      </div>
+      <button class="btn-reset" id="resetBtn">Reset Filter</button>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2>Dashboard Setting Proteksi Recloser</h2>
+          <p>Monitoring setting OCR, GFR, zona, dan proteksi tambahan</p>
+        </div>
+        <div class="badge">UP3 MERAUKE</div>
+      </header>
+
+      <section class="summary-grid">
+        <div class="summary-card"><span>Lokasi</span><strong id="sumLokasi">-</strong></div>
+        <div class="summary-card"><span>Pemutus</span><strong id="sumPemutus">-</strong></div>
+        <div class="summary-card"><span>CT Ratio</span><strong id="sumCt">-</strong></div>
+        <div class="summary-card"><span>Relay</span><strong id="sumRelay">-</strong></div>
+        <div class="summary-card"><span>Beban</span><strong id="sumBeban">-</strong></div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <div class="card-title">Informasi Umum</div>
+          <div class="info-grid" id="infoGrid"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Zona / Segment Proteksi</div>
+          <div class="zone-grid" id="zoneGrid"></div>
+        </div>
+      </section>
+
+      <section class="grid-3">
+        <div class="card">
+          <div class="card-title blue">OCR</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th colspan="3">LOW SET</th><th colspan="3">HIGH SET</th></tr>
+                <tr><th>I&gt;</th><th>TMS</th><th>KURVA</th><th>I&gt;&gt;</th><th>DELAY</th><th>KURVA</th></tr>
+              </thead>
+              <tbody><tr id="ocrRow"><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title green">GFR</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th colspan="3">LOW SET</th><th colspan="3">HIGH SET</th></tr>
+                <tr><th>I&gt;</th><th>TMS</th><th>KURVA</th><th>I&gt;&gt;</th><th>DELAY</th><th>KURVA</th></tr>
+              </thead>
+              <tbody><tr id="gfrRow"><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title orange">Proteksi Tambahan</div>
+          <div class="extra-box" id="extraBox">Belum ada data</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">Daftar Setting Proteksi</div>
+        <div class="table-wrap">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>No</th><th>Lokasi</th><th>Pemutus</th><th>Merek</th><th>Tipe</th><th>CT Ratio</th><th>Relay</th><th>Beban</th><th>OCR I&gt;</th><th>GFR I&gt;</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
