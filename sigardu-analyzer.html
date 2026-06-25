@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGARDU - Sistem Analisis Pengukuran Gardu | PLN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+<style>
+  :root {
+    --primary: #125d72;
+    --primary-light: #14a2ba;
+    --primary-bg: #e7f6f9;
+    --primary-dark: #0d4555;
+    --danger: #d9534f;
+    --warning: #f0ad4e;
+    --success: #5cb85c;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    overflow: hidden;
+    height: 100vh;
+  }
+  /* === LAYOUT === */
+  .app { display: flex; height: 100vh; }
+  .sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  }
+  .sidebar-header {
+    padding: 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-pln {
+    width: 38px;
+    height: 38px;
+    background: white;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+  }
+  .logo-danantara {
+    width: 38px;
+    height: 38px;
+    background: white;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+  }
+  .app-title {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .app-subtitle { font-size: 11px; opacity: 0.8; }
+  .nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-item {
+    padding: 11px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); }
+  .nav-item.active {
+    background: rgba(255,255,255,0.15);
+    border-left-color: var(--primary-light);
+    font-weight: 600;
+  }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .sidebar-footer {
+    padding: 14px 18px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
+  /* === MAIN === */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .topbar {
+    height: 60px;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 700; color: var(--primary); flex: 1; }
+  .file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--primary-bg);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--primary);
+  }
+  .file-info.empty { background: #fff7ed; color: #9a3412; }
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* === CARDS === */
+  .card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid var(--gray-200);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px solid var(--gray-200);
+    border-left: 4px solid var(--primary-light);
+  }
+  .stat-card.danger { border-left-color: var(--danger); }
+  .stat-card.warning { border-left-color: var(--warning); }
+  .stat-card.success { border-left-color: var(--success); }
+  .stat-label { font-size: 12px; color: var(--gray-500); margin-bottom: 4px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--gray-900); }
+  .stat-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+  /* === TABLES === */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: var(--primary);
+    color: white;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 12px;
+    position: sticky;
+    top: 0;
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  tr:hover td { background: var(--primary-bg); }
+  .table-wrap { overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: 8px; }
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.danger { background: #fee2e2; color: #991b1b; }
+  .badge.warning { background: #fef3c7; color: #92400e; }
+  .badge.success { background: #d1fae5; color: #065f46; }
+  .badge.info { background: var(--primary-bg); color: var(--primary); }
+
+  /* === BUTTONS === */
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: var(--gray-100); color: var(--gray-700); }
+  .btn-secondary:hover { background: var(--gray-200); }
+  .btn-success { background: #25d366; color: white; }
+  .btn-success:hover { background: #1da851; }
+  .btn-outline { background: white; border: 1px solid var(--primary); color: var(--primary); }
+  .btn-outline:hover { background: var(--primary-bg); }
+
+  /* === UPLOAD === */
+  .upload-zone {
+    border: 2px dashed var(--primary-light);
+    border-radius: 12px;
+    padding: 50px 20px;
+    text-align: center;
+    background: var(--primary-bg);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .upload-zone:hover { background: #d8eef3; border-color: var(--primary); }
+  .upload-zone.dragover { background: #d8eef3; border-color: var(--primary); transform: scale(1.01); }
+  .upload-icon { width: 56px; height: 56px; margin: 0 auto 12px; color: var(--primary); }
+  .upload-text { font-size: 16px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+  .upload-hint { font-size: 13px; color: var(--gray-500); }
+
+  /* === FILTERS === */
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  select, input[type="text"], input[type="number"], textarea {
+    padding: 7px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(20, 162, 186, 0.15);
+  }
+
+  /* === CHART CONTAINER === */
+  .chart-container {
+    position: relative;
+    height: 280px;
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 1024px) {
+    .chart-grid { grid-template-columns: 1fr; }
+  }
+
+  /* === EMPTY STATE === */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--gray-500);
+  }
+  .empty-state svg { width: 64px; height: 64px; margin-bottom: 12px; opacity: 0.5; }
+
+  /* === WAG MESSAGE === */
+  .wag-template {
+    background: #ece5dd;
+    padding: 16px;
+    border-radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .wag-bubble {
+    background: #dcf8c6;
+    padding: 12px 14px;
+    border-radius: 8px;
+    max-width: 90%;
+    margin-left: auto;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .tag-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .tag-field {
+    flex: 1;
+    min-width: 180px;
+  }
+  .tag-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .tag-field input {
+    width: 100%;
+  }
+
+  /* === SCREENSHOT AREA === */
+  .ss-area {
+    background: white;
+    padding: 24px;
+    border-radius: 10px;
+    border: 1px solid var(--gray-200);
+  }
+  .ss-header {
+    text-align: center;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--primary);
+  }
+  .ss-header h2 {
+    color: var(--primary);
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .ss-header p { font-size: 12px; color: var(--gray-500); }
+  .ss-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--gray-500);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--gray-300);
+  }
+
+  /* === BACKLOG === */
+  .backlog-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 13px;
+  }
+  .backlog-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-bg);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .backlog-content { flex: 1; }
+  .backlog-time { font-size: 11px; color: var(--gray-500); }
+
+  /* === DB INFO === */
+  .db-schema {
+    background: var(--gray-900);
+    color: #e5e7eb;
+    padding: 16px;
+    border-radius: 8px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  .db-schema .kw { color: #c084fc; }
+  .db-schema .type { color: #38bdf8; }
+  .db-schema .com { color: #6b7280; }
+
+  .pill {
+    display: inline-block;
+    background: var(--primary-bg);
+    color: var(--primary);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  /* === LOADER === */
+  .loader {
+    border: 3px solid var(--gray-200);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+  }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  .progress {
+    display: none;
+    text-align: center;
+    padding: 20px;
+  }
+  .progress.show { display: block; }
+
+  .alert {
+    padding: 12px 14px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    border-left: 3px solid;
+  }
+  .alert-info { background: var(--primary-bg); color: var(--primary); border-color: var(--primary); }
+  .alert-warning { background: #fef3c7; color: #92400e; border-color: var(--warning); }
+  .alert-danger { background: #fee2e2; color: #991b1b; border-color: var(--danger); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============== SIDEBAR ============== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-container">
+        <!-- PLN Logo -->
+        <div class="logo-pln" title="PLN">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="6" fill="#FFD100"/>
+            <polygon points="55,15 30,55 48,55 38,85 70,42 52,42 62,15" fill="#003876"/>
+          </svg>
+        </div>
+        <!-- Danantara Logo -->
+        <div class="logo-danantara" title="Danantara">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="45" fill="#C8102E"/>
+            <path d="M 25,50 Q 50,20 75,50 Q 50,80 25,50 Z" fill="white"/>
+            <circle cx="50" cy="50" r="8" fill="#C8102E"/>
+          </svg>
+        </div>
+      </div>
+      <div>
+        <div class="app-title">SIGARDU</div>
+        <div class="app-subtitle">PLN · Danantara</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" data-page="dashboard">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" data-page="upload">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        Upload Dokumen
+      </div>
+      <div class="nav-item" data-page="late">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Gardu Terlambat Ukur
+      </div>
+      <div class="nav-item" data-page="load">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Status Beban
+      </div>
+      <div class="nav-item" data-page="asset">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        Asset Overview
+      </div>
+      <div class="nav-item" data-page="export">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        Export & WAG
+      </div>
+      <div class="nav-item" data-page="backlog">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Backlog Aktivitas
+      </div>
+      <div class="nav-item" data-page="database">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+        Database Info
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      v1.0.0 · © 2025 PLN Indonesia<br>
+      Sistem Analisis Pengukuran Gardu
+    </div>
+  </aside>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+    <header class="topbar">
+      <h1 id="pageTitle">Dashboard</h1>
+      <div class="file-info empty" id="fileInfo">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        Belum ada dokumen — silakan upload
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ====== DASHBOARD ====== -->
+      <section class="page active" id="page-dashboard">
+        <div id="dashEmpty" class="empty-state">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <h3 style="margin-bottom:6px;color:var(--gray-700);">Belum Ada Data</h3>
+          <p>Silakan upload dokumen pengukuran melalui menu <b>Upload Dokumen</b></p>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="navigate('upload')">Upload Sekarang</button>
+        </div>
+
+        <div id="dashContent" style="display:none">
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-label">TOTAL GARDU</div>
+              <div class="stat-value" id="statTotal">0</div>
+              <div class="stat-sub" id="statTotalSub">unit terdaftar</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-label">TERUKUR</div>
+              <div class="stat-value" id="statMeasured">0</div>
+              <div class="stat-sub" id="statMeasuredSub">memiliki tgl ukur</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-label">OVERLOAD (>80%)</div>
+              <div class="stat-value" id="statOverload">0</div>
+              <div class="stat-sub">perlu tindakan</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-label">UNDERLOAD (&lt;30%)</div>
+              <div class="stat-value" id="statUnderload">0</div>
+              <div class="stat-sub">utilisasi rendah</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-label">BELUM UKUR >6 BLN</div>
+              <div class="stat-value" id="statLate6">0</div>
+              <div class="stat-sub">prioritas tinggi</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">KAPASITAS TOTAL</div>
+              <div class="stat-value" id="statCap">0</div>
+              <div class="stat-sub">kVA</div>
+            </div>
+          </div>
+
+          <div class="chart-grid">
+            <div class="card">
+              <div class="card-title">Distribusi Status Beban</div>
+              <div class="chart-container"><canvas id="chartLoad"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Status Pengukuran</div>
+              <div class="chart-container"><canvas id="chartLate"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Distribusi Gardu per Penyulang</div>
+              <div class="chart-container"><canvas id="chartPenyulang"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Distribusi Kapasitas (kVA)</div>
+              <div class="chart-container"><canvas id="chartDaya"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== UPLOAD ====== -->
+      <section class="page" id="page-upload">
+        <div class="card">
+          <div class="card-title">Upload Dokumen Pengukuran Gardu</div>
+          <div class="alert alert-info">
+            <b>Format didukung:</b> Excel (.xls, .xlsx), Excel-as-HTML, PNG, JPG (via OCR), PDF. Yang utama adalah file Excel laporan pengukuran bulanan dari sistem APKT/PLN.
+          </div>
+          <div class="upload-zone" id="dropZone">
+            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <div class="upload-text">Drag & drop file di sini atau klik untuk pilih</div>
+            <div class="upload-hint">Excel (.xls/.xlsx), PNG, JPG, atau PDF</div>
+            <input type="file" id="fileInput" accept=".xls,.xlsx,.png,.jpg,.jpeg,.pdf" hidden>
+          </div>
+          <div class="progress" id="uploadProgress">
+            <div class="loader"></div>
+            <p style="margin-top:10px;color:var(--gray-500);" id="progressText">Memproses file...</p>
+          </div>
+        </div>
+
+        <div class="card" id="uploadResult" style="display:none">
+          <div class="card-title">Hasil Parsing Dokumen</div>
+          <div id="parseSummary"></div>
+          <div class="table-wrap" style="margin-top:14px">
+            <table id="rawTable"></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== LATE MEASUREMENT ====== -->
+      <section class="page" id="page-late">
+        <div class="card">
+          <div class="card-title">Overview Gardu Belum Diukur (Bulan)</div>
+          <p style="font-size:12px;color:var(--gray-500);margin-bottom:14px">
+            Hitungan berdasarkan tanggal ukur terakhir hingga hari ini. Klik kategori untuk melihat detail.
+          </p>
+          <div class="stat-grid" id="lateStats"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Detail Gardu Terlambat Ukur</span>
+            <div class="filter-row" style="margin:0">
+              <select id="filterLate">
+                <option value="all">Semua (>3 bulan)</option>
+                <option value="3">>= 3 bulan</option>
+                <option value="4">>= 4 bulan</option>
+                <option value="5">>= 5 bulan</option>
+                <option value="6">>= 6 bulan</option>
+                <option value="never">Belum pernah diukur</option>
+              </select>
+              <select id="filterPenyulangLate">
+                <option value="all">Semua Penyulang</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="lateTable">
+              <thead>
+                <tr>
+                  <th>No</th><th>No Gardu</th><th>Penyulang</th><th>Alamat</th>
+                  <th>Daya (kVA)</th><th>Tgl Ukur Terakhir</th><th>Selisih</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== LOAD STATUS ====== -->
+      <section class="page" id="page-load">
+        <div class="card">
+          <div class="card-title">
+            <span>Status Beban Gardu (Overload / Underload)</span>
+            <button class="btn btn-primary" onclick="screenshotElement('loadSSArea','status-beban-gardu')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              Export Gambar
+            </button>
+          </div>
+          <div class="filter-row">
+            <select id="filterStatus">
+              <option value="all">Semua Status</option>
+              <option value="overload">Overload (>80%)</option>
+              <option value="normal">Normal (30-80%)</option>
+              <option value="underload">Underload (&lt;30%)</option>
+            </select>
+            <select id="filterPenyulangLoad">
+              <option value="all">Semua Penyulang</option>
+            </select>
+            <input type="number" id="thOverload" value="80" style="width:90px" placeholder="OL %">
+            <input type="number" id="thUnderload" value="30" style="width:90px" placeholder="UL %">
+            <button class="btn btn-outline" id="applyThreshold">Terapkan Threshold</button>
+          </div>
+
+          <div id="loadSSArea" class="ss-area">
+            <div class="ss-header">
+              <h2>LAPORAN STATUS BEBAN GARDU</h2>
+              <p id="loadSSSub">UP3 / ULP — Periode pengukuran</p>
+            </div>
+            <div class="stat-grid" id="loadStats"></div>
+            <div class="table-wrap" style="max-height:none">
+              <table id="loadTable">
+                <thead>
+                  <tr>
+                    <th>No</th><th>No Gardu</th><th>Penyulang</th><th>Daya (kVA)</th>
+                    <th>Daya Pakai</th><th>Prosen (%)</th><th>Tdk Seimbang</th>
+                    <th>Tgl Ukur</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="ss-meta">
+              <span>Generated by SIGARDU</span>
+              <span id="loadSSDate"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== ASSET OVERVIEW ====== -->
+      <section class="page" id="page-asset">
+        <div class="card">
+          <div class="card-title">
+            <span>Asset Overview — Profil Aset Gardu</span>
+            <button class="btn btn-primary" onclick="screenshotElement('assetSSArea','asset-overview')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              Export Gambar
+            </button>
+          </div>
+          <div id="assetSSArea" class="ss-area">
+            <div class="ss-header">
+              <h2>RINGKASAN ASET GARDU</h2>
+              <p id="assetSSSub">Profil aset distribusi</p>
+            </div>
+            <div class="stat-grid" id="assetStats"></div>
+            <div class="grid-2">
+              <div>
+                <h4 style="margin-bottom:10px;color:var(--primary);font-size:13px">Rekap per Penyulang</h4>
+                <div class="table-wrap" style="max-height:340px">
+                  <table id="assetByFeeder">
+                    <thead><tr><th>Penyulang</th><th>Jumlah</th><th>Kapasitas (kVA)</th><th>Avg Beban %</th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <h4 style="margin-bottom:10px;color:var(--primary);font-size:13px">Rekap per Kapasitas</h4>
+                <div class="table-wrap" style="max-height:340px">
+                  <table id="assetByDaya">
+                    <thead><tr><th>Daya (kVA)</th><th>Jumlah Unit</th><th>Total Kapasitas</th><th>% dari Total</th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="ss-meta">
+              <span>Generated by SIGARDU</span>
+              <span id="assetSSDate"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== EXPORT & WAG ====== -->
+      <section class="page" id="page-export">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Konfigurasi Tag WAG</div>
+            <p style="font-size:12px;color:var(--gray-500);margin-bottom:10px">
+              Masukkan nama / nomor untuk tag di pesan WhatsApp Group.
+            </p>
+            <div class="tag-input" style="display:block">
+              <div class="tag-field" style="margin-bottom:10px">
+                <label>Tag TL ULP</label>
+                <input type="text" id="tagULP" placeholder="@TL_ULP atau +628xxxx">
+              </div>
+              <div class="tag-field" style="margin-bottom:10px">
+                <label>Tag ASMAN</label>
+                <input type="text" id="tagASMAN" placeholder="@ASMAN atau +628xxxx">
+              </div>
+              <div class="tag-field" style="margin-bottom:10px">
+                <label>Tag TL HAR</label>
+                <input type="text" id="tagHAR" placeholder="@TL_HAR atau +628xxxx">
+              </div>
+              <div class="tag-field">
+                <label>Catatan Tambahan (opsional)</label>
+                <textarea id="tagNote" rows="2" style="width:100%;font-family:inherit" placeholder="Mohon segera ditindaklanjuti..."></textarea>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="genWag" style="margin-top:10px;width:100%">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              Generate Pesan WAG
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Tombol Export Cepat</div>
+            <p style="font-size:12px;color:var(--gray-500);margin-bottom:10px">
+              Klik untuk export gambar PNG dari masing-masing ringkasan.
+            </p>
+            <button class="btn btn-outline" style="width:100%;margin-bottom:8px;justify-content:flex-start" onclick="screenshotElement('exportSSLate','gardu-belum-diukur')">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Export Ringkasan Gardu Belum Diukur
+            </button>
+            <button class="btn btn-outline" style="width:100%;margin-bottom:8px;justify-content:flex-start" onclick="screenshotElement('exportSSLoad','status-beban-ringkas')">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              Export Ringkasan Status Beban
+            </button>
+            <button class="btn btn-outline" style="width:100%;margin-bottom:8px;justify-content:flex-start" onclick="screenshotElement('exportSSAll','laporan-gabungan')">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5"/></svg>
+              Export Laporan Gabungan
+            </button>
+            <button class="btn btn-success" style="width:100%;margin-top:8px" id="shareWa">
+              <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+              Kirim Lewat WhatsApp
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Preview Pesan WAG</div>
+          <div class="wag-template">
+            <div class="wag-bubble" id="wagPreview" style="color:var(--gray-500);font-style:italic">Klik "Generate Pesan WAG" untuk membuat pesan...</div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn btn-secondary" id="copyWag">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              Copy Teks
+            </button>
+            <button class="btn btn-secondary" onclick="screenshotElement('wagPreview','pesan-wag')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16"/></svg>
+              Screenshot Pesan
+            </button>
+          </div>
+        </div>
+
+        <!-- Hidden screenshot areas -->
+        <div style="position:absolute;left:-9999px;top:0">
+          <div id="exportSSLate" class="ss-area" style="width:900px"></div>
+          <div id="exportSSLoad" class="ss-area" style="width:900px"></div>
+          <div id="exportSSAll" class="ss-area" style="width:900px"></div>
+        </div>
+      </section>
+
+      <!-- ====== BACKLOG ====== -->
+      <section class="page" id="page-backlog">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">TOTAL AKSES</div>
+            <div class="stat-value" id="bgTotalAccess">0</div>
+            <div class="stat-sub">sesi pembukaan aplikasi</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">TOTAL UPLOAD</div>
+            <div class="stat-value" id="bgTotalUpload">0</div>
+            <div class="stat-sub">file telah diproses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">EXPORT GAMBAR</div>
+            <div class="stat-value" id="bgTotalExport">0</div>
+            <div class="stat-sub">screenshot dihasilkan</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">WAG GENERATED</div>
+            <div class="stat-value" id="bgTotalWag">0</div>
+            <div class="stat-sub">pesan WAG dibuat</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <span>Log Aktivitas</span>
+            <button class="btn btn-secondary" id="clearBacklog">Bersihkan Log</button>
+          </div>
+          <div id="backlogList" style="max-height:500px;overflow-y:auto"></div>
+        </div>
+      </section>
+
+      <!-- ====== DATABASE INFO ====== -->
+      <section class="page" id="page-database">
+        <div class="card">
+          <div class="card-title">Arsitektur Database SIGARDU</div>
+          <p style="font-size:13px;line-height:1.7;margin-bottom:12px">
+            SIGARDU adalah aplikasi <b>web client-side</b> yang berjalan di browser pengguna. Tidak ada server pusat sehingga setiap pengguna mengelola datanya sendiri secara lokal. Database utama menggunakan <b>IndexedDB</b> (otomatis fallback ke localStorage) yang dikelola browser. Berikut struktur skema lengkap:
+          </p>
+          <div style="margin-bottom:14px">
+            <span class="pill">Tipe: Client-side (Browser)</span>
+            <span class="pill">Engine: IndexedDB / localStorage</span>
+            <span class="pill">Format Penyimpanan: JSON</span>
+            <span class="pill">Enkripsi: -</span>
+            <span class="pill">Backup: Manual (Export JSON)</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Skema Tabel: gardu_measurements</div>
+            <pre class="db-schema"><span class="com">-- Tabel utama hasil parsing dokumen</span>
+<span class="kw">CREATE TABLE</span> gardu_measurements (
+  id           <span class="type">TEXT PRIMARY KEY</span>,
+  nogardu      <span class="type">TEXT NOT NULL</span>,
+  unitup       <span class="type">TEXT</span>,
+  penyulang    <span class="type">TEXT</span>,
+  alamat       <span class="type">TEXT</span>,
+  daya_kva     <span class="type">REAL</span>,
+  fasa         <span class="type">INT</span>,
+  daya_pakai   <span class="type">REAL</span>,
+  prosen       <span class="type">REAL</span>,
+  tdk_seimbang <span class="type">REAL</span>,
+  jam_ukur     <span class="type">TEXT</span>,
+  tgl_ukur     <span class="type">DATE</span>,
+  petugas      <span class="type">TEXT</span>,
+  r_total      <span class="type">REAL</span>,
+  s_total      <span class="type">REAL</span>,
+  t_total      <span class="type">REAL</span>,
+  n_total      <span class="type">REAL</span>,
+  upload_id    <span class="type">TEXT</span>,
+  created_at   <span class="type">DATETIME</span>
+);</pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Skema Tabel: upload_history</div>
+            <pre class="db-schema"><span class="com">-- Metadata setiap file yang diupload</span>
+<span class="kw">CREATE TABLE</span> upload_history (
+  upload_id    <span class="type">TEXT PRIMARY KEY</span>,
+  filename     <span class="type">TEXT</span>,
+  filesize     <span class="type">INT</span>,
+  filetype     <span class="type">TEXT</span>,
+  rows_parsed  <span class="type">INT</span>,
+  uw_text      <span class="type">TEXT</span>,  <span class="com">-- UIW header</span>
+  up3_text     <span class="type">TEXT</span>,  <span class="com">-- UP3 header</span>
+  ulp_text     <span class="type">TEXT</span>,  <span class="com">-- ULP header</span>
+  periode      <span class="type">TEXT</span>,
+  uploaded_at  <span class="type">DATETIME</span>,
+  user_agent   <span class="type">TEXT</span>
+);</pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Skema Tabel: activity_log</div>
+            <pre class="db-schema"><span class="com">-- Backlog aktivitas pengguna</span>
+<span class="kw">CREATE TABLE</span> activity_log (
+  log_id       <span class="type">TEXT PRIMARY KEY</span>,
+  event_type   <span class="type">TEXT</span>,  <span class="com">-- access | upload | export | wag</span>
+  description  <span class="type">TEXT</span>,
+  metadata     <span class="type">JSON</span>,
+  timestamp    <span class="type">DATETIME</span>
+);
+
+<span class="com">-- Index untuk pencarian cepat</span>
+<span class="kw">CREATE INDEX</span> idx_event_type <span class="kw">ON</span> activity_log(event_type);
+<span class="kw">CREATE INDEX</span> idx_timestamp <span class="kw">ON</span> activity_log(timestamp);</pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Skema Tabel: settings</div>
+            <pre class="db-schema"><span class="com">-- Konfigurasi tag WAG &amp; threshold</span>
+<span class="kw">CREATE TABLE</span> settings (
+  key          <span class="type">TEXT PRIMARY KEY</span>,
+  value        <span class="type">TEXT</span>,
+  updated_at   <span class="type">DATETIME</span>
+);
+
+<span class="com">-- Contoh isi:</span>
+<span class="com">-- key='tag_tl_ulp', value='@TL_ULP_MERAUKE'</span>
+<span class="com">-- key='tag_asman', value='@ASMAN_MERAUKE'</span>
+<span class="com">-- key='tag_tl_har', value='@TL_HAR_MERAUKE'</span>
+<span class="com">-- key='th_overload', value='80'</span>
+<span class="com">-- key='th_underload', value='30'</span></pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Relasi & Alur Data</div>
+          <div style="background:var(--primary-bg);padding:16px;border-radius:8px;font-size:13px;line-height:1.8">
+            <p><b>1. Upload File:</b> User upload Excel/PDF/PNG → parsing dengan SheetJS/PDF.js/Tesseract.js → data masuk ke <code>upload_history</code> (1 row) dan <code>gardu_measurements</code> (N rows). Setiap row dapat ditrace ke file asal via <code>upload_id</code>.</p>
+            <p><b>2. Aktivitas:</b> Setiap event (akses, upload, export, generate WAG) dicatat di <code>activity_log</code> sebagai backlog. Ini yang ditampilkan di menu Backlog Aktivitas.</p>
+            <p><b>3. Konfigurasi:</b> Tag WAG dan threshold overload/underload disimpan di <code>settings</code> agar persist antar sesi.</p>
+            <p><b>4. Analisis:</b> Semua query analisis (gardu terlambat ukur, overload, asset) dijalankan in-memory di browser dari data <code>gardu_measurements</code>.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Catatan Teknis</div>
+          <ul style="font-size:13px;line-height:1.8;padding-left:20px">
+            <li><b>Storage Limit:</b> IndexedDB ~50MB+, localStorage ~5MB. Cukup untuk ribuan record gardu.</li>
+            <li><b>Privasi:</b> Data tidak pernah dikirim ke server eksternal. 100% lokal di browser pengguna.</li>
+            <li><b>Sinkronisasi:</b> Untuk multi-user, dapat di-upgrade ke backend (PostgreSQL + REST API) dengan skema yang sama.</li>
+            <li><b>Backup:</b> Gunakan tombol "Export Data" (akan ditambahkan) untuk mengunduh seluruh data dalam format JSON.</li>
+            <li><b>Kompatibilitas:</b> Chrome, Edge, Firefox, Safari modern (≥2020).</li>
+          </ul>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// =================== STATE & STORAGE ===================
+const STORAGE_KEY = 'sigardu_data_v1';
+const SETTINGS_KEY = 'sigardu_settings_v1';
+const LOG_KEY = 'sigardu_log_v1';
+
+let state = {
+  records: [],         // gardu_measurements rows
+  uploads: [],         // upload_history rows
+  settings: {
+    tagULP: '@TL_ULP',
+    tagASMAN: '@ASMAN',
+    tagHAR: '@TL_HAR',
+    thOverload: 80,
+    thUnderload: 30
+  },
+  log: [],
+  currentUpload: null
+};
+let charts = {};
+
+// LocalStorage wrappers (also works in restricted env via try/catch fallback)
+function safeLoad(key, def) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : def;
+  } catch (e) { return def; }
+}
+function safeSave(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+}
+
+function loadState() {
+  const d = safeLoad(STORAGE_KEY, null);
+  if (d) { state.records = d.records || []; state.uploads = d.uploads || []; }
+  const s = safeLoad(SETTINGS_KEY, null);
+  if (s) Object.assign(state.settings, s);
+  state.log = safeLoad(LOG_KEY, []);
+}
+function persistData() { safeSave(STORAGE_KEY, { records: state.records, uploads: state.uploads }); }
+function persistSettings() { safeSave(SETTINGS_KEY, state.settings); }
+function persistLog() { safeSave(LOG_KEY, state.log); }
+
+// =================== LOGGING ===================
+function logEvent(type, desc, meta = {}) {
+  state.log.unshift({
+    id: 'L' + Date.now() + Math.random().toString(36).slice(2,6),
+    type, description: desc, metadata: meta,
+    timestamp: new Date().toISOString()
+  });
+  if (state.log.length > 500) state.log = state.log.slice(0, 500);
+  persistLog();
+  renderBacklog();
+}
+
+// =================== NAV ===================
+function navigate(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+  const titles = {
+    dashboard: 'Dashboard', upload: 'Upload Dokumen', late: 'Gardu Terlambat Ukur',
+    load: 'Status Beban Gardu', asset: 'Asset Overview', export: 'Export & WAG Message',
+    backlog: 'Backlog Aktivitas', database: 'Database Info'
+  };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+
+  // refresh charts on visible page (chart.js needs re-render)
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'late') renderLate();
+  if (page === 'load') renderLoad();
+  if (page === 'asset') renderAsset();
+  if (page === 'backlog') renderBacklog();
+}
+document.querySelectorAll('.nav-item').forEach(n => n.addEventListener('click', () => navigate(n.dataset.page)));
+
+// =================== HELPERS ===================
+function cleanNum(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).replace(/^'/, '').replace(/,/g, '.').trim();
+  if (s === '' || s === '-' || s === 'NaN') return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function cleanText(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/^'/, '').trim();
+}
+function parseDate(v) {
+  if (!v) return null;
+  const s = cleanText(v);
+  // dd/mm/yyyy
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const d = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+    return isNaN(d) ? null : d;
+  }
+  // yyyy-mm-dd
+  const m2 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m2) {
+    const d = new Date(parseInt(m2[1]), parseInt(m2[2]) - 1, parseInt(m2[3]));
+    return isNaN(d) ? null : d;
+  }
+  // try generic
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function monthsBetween(d1, d2) {
+  if (!d1 || !d2) return null;
+  const ms = d2 - d1;
+  return ms / (1000 * 60 * 60 * 24 * 30.4375); // average month length
+}
+function fmtDate(d) {
+  if (!d) return '-';
+  return d.getDate().toString().padStart(2, '0') + '/' + (d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getFullYear();
+}
+function fmtNum(n, dec = 0) {
+  if (n === null || n === undefined || isNaN(n)) return '-';
+  return Number(n).toLocaleString('id-ID', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+// =================== FILE PARSER ===================
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file) {
+  const prog = document.getElementById('uploadProgress');
+  const progText = document.getElementById('progressText');
+  prog.classList.add('show');
+  progText.textContent = 'Membaca file...';
+
+  try {
+    const ext = file.name.split('.').pop().toLowerCase();
+    let records = [], headerInfo = {};
+
+    if (['xls', 'xlsx'].includes(ext)) {
+      progText.textContent = 'Parsing Excel...';
+      const result = await parseExcel(file);
+      records = result.records;
+      headerInfo = result.header;
+    } else if (ext === 'pdf') {
+      progText.textContent = 'Membaca PDF...';
+      const result = await parsePDF(file);
+      records = result.records;
+      headerInfo = result.header;
+    } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+      progText.textContent = 'OCR gambar (mungkin perlu waktu)...';
+      const result = await parseImage(file);
+      records = result.records;
+      headerInfo = result.header;
+    } else {
+      throw new Error('Format file tidak didukung: ' + ext);
+    }
+
+    if (records.length === 0) {
+      throw new Error('Tidak ada data gardu yang berhasil diparse');
+    }
+
+    // Save
+    const uploadId = 'U' + Date.now();
+    const upload = {
+      upload_id: uploadId,
+      filename: file.name,
+      filesize: file.size,
+      filetype: ext,
+      rows_parsed: records.length,
+      ...headerInfo,
+      uploaded_at: new Date().toISOString(),
+      user_agent: navigator.userAgent
+    };
+    records.forEach(r => r.upload_id = uploadId);
+
+    // Replace data (each upload is a fresh dataset for this app)
+    state.records = records;
+    state.uploads.unshift(upload);
+    state.currentUpload = upload;
+    persistData();
+
+    logEvent('upload', `File "${file.name}" diupload (${records.length} gardu)`, { upload_id: uploadId });
+
+    showUploadResult(upload, records);
+    updateFileInfo();
+    prog.classList.remove('show');
+  } catch (e) {
+    prog.classList.remove('show');
+    alert('Gagal memproses file: ' + e.message);
+    console.error(e);
+  }
+}
+
+async function parseExcel(file) {
+  const buf = await file.arrayBuffer();
+  let wb, header = {};
+  try {
+    wb = XLSX.read(buf, { type: 'array' });
+  } catch (e) {
+    // Fallback: treat as HTML
+    const text = new TextDecoder().decode(buf);
+    return parseHTMLExcel(text);
+  }
+  // Check if it's actually HTML-as-XLS
+  const txt = new TextDecoder().decode(buf.slice(0, 200));
+  if (txt.toLowerCase().includes('<html') || txt.toLowerCase().includes('<table')) {
+    return parseHTMLExcel(new TextDecoder().decode(buf));
+  }
+
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  return extractFromRows(rows);
+}
+
+function parseHTMLExcel(htmlText) {
+  // Parse HTML tables — file from APKT/PLN is typically HTML-disguised-as-xls
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlText, 'text/html');
+  const tables = doc.querySelectorAll('table');
+  const header = {};
+  let mainTable = null;
+
+  for (const tbl of tables) {
+    const text = tbl.textContent;
+    if (text.includes('UIW') || text.includes('UP3') || text.includes('ULP')) {
+      const uiwM = text.match(/UIW\s*:\s*([^\n]+?)(?=UP3|ULP|$)/);
+      const up3M = text.match(/UP3\s*:\s*([^\n]+?)(?=ULP|UIW|$)/);
+      const ulpM = text.match(/ULP\s*:\s*([^\n]+)/);
+      if (uiwM) header.uw_text = uiwM[1].trim();
+      if (up3M) header.up3_text = up3M[1].trim();
+      if (ulpM) header.ulp_text = ulpM[1].trim().split(/\s{2,}/)[0];
+    }
+    const periodeM = text.match(/PERIODE\s*:\s*([0-9\/\- ]+)/);
+    if (periodeM) header.periode = periodeM[1].trim();
+
+    if (text.includes('NOGARDU') || text.includes('NO GARDU')) {
+      mainTable = tbl;
+    }
+  }
+
+  if (!mainTable) {
+    // fall back: choose largest
+    let max = 0;
+    tables.forEach(t => { if (t.rows.length > max) { max = t.rows.length; mainTable = t; } });
+  }
+
+  const rows = [];
+  if (mainTable) {
+    for (const tr of mainTable.rows) {
+      const cells = [];
+      for (const td of tr.cells) cells.push(td.textContent.trim());
+      rows.push(cells);
+    }
+  }
+  const out = extractFromRows(rows);
+  out.header = { ...header, ...out.header };
+  return out;
+}
+
+function extractFromRows(rows) {
+  // Find header row containing NOGARDU
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(20, rows.length); i++) {
+    const r = rows[i].map(x => String(x || '').toUpperCase());
+    if (r.some(c => c.includes('NOGARDU') || c.includes('NO GARDU'))) {
+      headerIdx = i; break;
+    }
+  }
+  if (headerIdx === -1) return { records: [], header: {} };
+
+  const headers = rows[headerIdx].map(x => String(x || '').toUpperCase().trim());
+  const col = (name) => {
+    for (let i = 0; i < headers.length; i++) {
+      if (headers[i] === name) return i;
+    }
+    for (let i = 0; i < headers.length; i++) {
+      if (headers[i].includes(name)) return i;
+    }
+    return -1;
+  };
+
+  const idx = {
+    no: col('NO'),
+    unitup: col('UNITUP'),
+    nogardu: col('NOGARDU'),
+    penyulang: col('PENYULANG'),
+    alamat: col('ALAMAT'),
+    daya: col('DAYA'),
+    fasa: col('FASA'),
+    daya_pakai: col('DAYA PAKAI'),
+    prosen: col('PROSEN'),
+    tdk_seimbang: col('TDKSEIMBANG'),
+    jam_ukur: col('JAM UKUR'),
+    tgl_ukur: col('TGLUKUR'),
+    petugas: col('PETUGAS'),
+    r_total: col('R TOTAL'),
+    s_total: col('S TOTAL'),
+    t_total: col('T TOTAL'),
+    n_total: col('N TOTAL')
+  };
+
+  const records = [];
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || !r.length) continue;
+    const nogardu = idx.nogardu >= 0 ? cleanText(r[idx.nogardu]) : '';
+    if (!nogardu) continue;
+    records.push({
+      id: 'G' + Date.now() + i,
+      no: cleanText(r[idx.no]),
+      unitup: cleanText(r[idx.unitup]),
+      nogardu: nogardu,
+      penyulang: cleanText(r[idx.penyulang]),
+      alamat: cleanText(r[idx.alamat]),
+      daya_kva: cleanNum(r[idx.daya]),
+      fasa: cleanNum(r[idx.fasa]),
+      daya_pakai: cleanNum(r[idx.daya_pakai]),
+      prosen: cleanNum(r[idx.prosen]),
+      tdk_seimbang: cleanNum(r[idx.tdk_seimbang]),
+      jam_ukur: cleanText(r[idx.jam_ukur]),
+      tgl_ukur: cleanText(r[idx.tgl_ukur]),
+      petugas: cleanText(r[idx.petugas]),
+      r_total: cleanNum(r[idx.r_total]),
+      s_total: cleanNum(r[idx.s_total]),
+      t_total: cleanNum(r[idx.t_total]),
+      n_total: cleanNum(r[idx.n_total])
+    });
+  }
+  return { records, header: {} };
+}
+
+async function parsePDF(file) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const rows = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    // Group items by y-coordinate (rough row detection)
+    const byY = {};
+    tc.items.forEach(it => {
+      const y = Math.round(it.transform[5]);
+      if (!byY[y]) byY[y] = [];
+      byY[y].push({ x: it.transform[4], text: it.str });
+    });
+    Object.keys(byY).sort((a, b) => b - a).forEach(y => {
+      const cells = byY[y].sort((a, b) => a.x - b.x).map(c => c.text);
+      rows.push(cells);
+    });
+  }
+  return extractFromRows(rows);
+}
+
+async function parseImage(file) {
+  const { data } = await Tesseract.recognize(file, 'eng+ind');
+  const text = data.text;
+  const lines = text.split('\n').filter(l => l.trim());
+  const rows = lines.map(l => l.split(/\s{2,}|\t/));
+  return extractFromRows(rows);
+}
+
+function showUploadResult(upload, records) {
+  document.getElementById('uploadResult').style.display = 'block';
+  const sum = document.getElementById('parseSummary');
+  sum.innerHTML = `
+    <div class="alert alert-info">
+      <b>Berhasil!</b> ${records.length} gardu berhasil diparse dari <b>${upload.filename}</b><br>
+      ${upload.uw_text ? `UIW: ${upload.uw_text} · ` : ''}
+      ${upload.up3_text ? `UP3: ${upload.up3_text} · ` : ''}
+      ${upload.ulp_text ? `ULP: ${upload.ulp_text} · ` : ''}
+      ${upload.periode ? `Periode: ${upload.periode}` : ''}
+    </div>
+  `;
+  const tbl = document.getElementById('rawTable');
+  const cols = ['nogardu', 'penyulang', 'alamat', 'daya_kva', 'daya_pakai', 'prosen', 'tdk_seimbang', 'tgl_ukur', 'petugas'];
+  const labels = ['No Gardu', 'Penyulang', 'Alamat', 'Daya (kVA)', 'Daya Pakai', 'Prosen %', 'Tdk Seimbang', 'Tgl Ukur', 'Petugas'];
+  let html = '<thead><tr>' + labels.map(l => `<th>${l}</th>`).join('') + '</tr></thead><tbody>';
+  records.slice(0, 50).forEach(r => {
+    html += '<tr>' + cols.map(c => `<td>${r[c] !== null && r[c] !== undefined ? r[c] : '-'}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+function updateFileInfo() {
+  const fi = document.getElementById('fileInfo');
+  if (state.currentUpload || state.uploads.length > 0) {
+    const u = state.currentUpload || state.uploads[0];
+    fi.className = 'file-info';
+    fi.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> ${u.filename} · ${state.records.length} gardu`;
+  } else {
+    fi.className = 'file-info empty';
+    fi.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/></svg> Belum ada dokumen — silakan upload`;
+  }
+}
+
+// =================== DASHBOARD ===================
+function renderDashboard() {
+  if (state.records.length === 0) {
+    document.getElementById('dashEmpty').style.display = 'block';
+    document.getElementById('dashContent').style.display = 'none';
+    return;
+  }
+  document.getElementById('dashEmpty').style.display = 'none';
+  document.getElementById('dashContent').style.display = 'block';
+
+  const recs = state.records;
+  const measured = recs.filter(r => parseDate(r.tgl_ukur));
+  const overload = recs.filter(r => r.prosen !== null && r.prosen > state.settings.thOverload);
+  const underload = recs.filter(r => r.prosen !== null && r.prosen < state.settings.thUnderload);
+  const cap = recs.reduce((s, r) => s + (r.daya_kva || 0), 0);
+
+  const today = new Date();
+  const late6 = recs.filter(r => {
+    const d = parseDate(r.tgl_ukur);
+    if (!d) return false;
+    return monthsBetween(d, today) >= 6;
+  });
+
+  document.getElementById('statTotal').textContent = recs.length;
+  document.getElementById('statTotalSub').textContent = `${state.uploads.length} kali upload`;
+  document.getElementById('statMeasured').textContent = measured.length;
+  document.getElementById('statMeasuredSub').textContent = `${recs.length - measured.length} belum`;
+  document.getElementById('statOverload').textContent = overload.length;
+  document.getElementById('statUnderload').textContent = underload.length;
+  document.getElementById('statLate6').textContent = late6.length;
+  document.getElementById('statCap').textContent = fmtNum(cap);
+
+  // Load distribution chart
+  const normal = recs.length - overload.length - underload.length;
+  renderChart('chartLoad', 'doughnut', {
+    labels: ['Overload', 'Normal', 'Underload', 'Tanpa Data'],
+    datasets: [{
+      data: [
+        overload.length,
+        recs.filter(r => r.prosen !== null && r.prosen >= state.settings.thUnderload && r.prosen <= state.settings.thOverload).length,
+        underload.length,
+        recs.filter(r => r.prosen === null).length
+      ],
+      backgroundColor: ['#d9534f', '#5cb85c', '#f0ad4e', '#9ca3af']
+    }]
+  });
+
+  // Late status
+  const lateBuckets = { '0-3': 0, '3-4': 0, '4-5': 0, '5-6': 0, '>6': 0, 'never': 0 };
+  recs.forEach(r => {
+    const d = parseDate(r.tgl_ukur);
+    if (!d) { lateBuckets.never++; return; }
+    const m = monthsBetween(d, today);
+    if (m < 3) lateBuckets['0-3']++;
+    else if (m < 4) lateBuckets['3-4']++;
+    else if (m < 5) lateBuckets['4-5']++;
+    else if (m < 6) lateBuckets['5-6']++;
+    else lateBuckets['>6']++;
+  });
+  renderChart('chartLate', 'bar', {
+    labels: ['<3 bln', '3-4 bln', '4-5 bln', '5-6 bln', '>6 bln', 'Tidak ada'],
+    datasets: [{
+      label: 'Jumlah Gardu',
+      data: [lateBuckets['0-3'], lateBuckets['3-4'], lateBuckets['4-5'], lateBuckets['5-6'], lateBuckets['>6'], lateBuckets['never']],
+      backgroundColor: ['#5cb85c', '#a0d76e', '#f0ad4e', '#f08e4e', '#d9534f', '#9ca3af']
+    }]
+  });
+
+  // Penyulang
+  const peny = {};
+  recs.forEach(r => { peny[r.penyulang || 'N/A'] = (peny[r.penyulang || 'N/A'] || 0) + 1; });
+  renderChart('chartPenyulang', 'bar', {
+    labels: Object.keys(peny),
+    datasets: [{ label: 'Jumlah Gardu', data: Object.values(peny), backgroundColor: '#14a2ba' }]
+  }, { indexAxis: 'y' });
+
+  // Daya distribution
+  const daya = {};
+  recs.forEach(r => { const k = r.daya_kva || 'N/A'; daya[k] = (daya[k] || 0) + 1; });
+  const sortedDaya = Object.keys(daya).sort((a, b) => parseFloat(a) - parseFloat(b));
+  renderChart('chartDaya', 'bar', {
+    labels: sortedDaya.map(k => k + ' kVA'),
+    datasets: [{ label: 'Jumlah Unit', data: sortedDaya.map(k => daya[k]), backgroundColor: '#125d72' }]
+  });
+}
+
+function renderChart(id, type, data, opts = {}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type,
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+      ...opts
+    }
+  });
+}
+
+// =================== LATE MEASUREMENT ===================
+function renderLate() {
+  if (state.records.length === 0) {
+    document.getElementById('lateStats').innerHTML = '<div class="empty-state" style="grid-column:1/-1">Belum ada data. Silakan upload dokumen.</div>';
+    document.querySelector('#lateTable tbody').innerHTML = '';
+    return;
+  }
+  const today = new Date();
+  const recs = state.records;
+  const buckets = { 3: [], 4: [], 5: [], 6: [], never: [] };
+  recs.forEach(r => {
+    const d = parseDate(r.tgl_ukur);
+    if (!d) { buckets.never.push(r); return; }
+    const m = monthsBetween(d, today);
+    if (m >= 6) { buckets[6].push(r); buckets[5].push(r); buckets[4].push(r); buckets[3].push(r); }
+    else if (m >= 5) { buckets[5].push(r); buckets[4].push(r); buckets[3].push(r); }
+    else if (m >= 4) { buckets[4].push(r); buckets[3].push(r); }
+    else if (m >= 3) { buckets[3].push(r); }
+  });
+
+  document.getElementById('lateStats').innerHTML = `
+    <div class="stat-card warning">
+      <div class="stat-label">>= 3 BULAN</div>
+      <div class="stat-value">${buckets[3].length}</div>
+      <div class="stat-sub">${((buckets[3].length / recs.length) * 100).toFixed(1)}% dari total</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-label">>= 4 BULAN</div>
+      <div class="stat-value">${buckets[4].length}</div>
+      <div class="stat-sub">${((buckets[4].length / recs.length) * 100).toFixed(1)}% dari total</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-label">>= 5 BULAN</div>
+      <div class="stat-value">${buckets[5].length}</div>
+      <div class="stat-sub">${((buckets[5].length / recs.length) * 100).toFixed(1)}% dari total</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-label">>= 6 BULAN</div>
+      <div class="stat-value">${buckets[6].length}</div>
+      <div class="stat-sub">${((buckets[6].length / recs.length) * 100).toFixed(1)}% dari total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">BELUM PERNAH</div>
+      <div class="stat-value">${buckets.never.length}</div>
+      <div class="stat-sub">tidak ada tanggal</div>
+    </div>
+  `;
+
+  // Populate filter
+  const sel = document.getElementById('filterPenyulangLate');
+  const penySet = [...new Set(recs.map(r => r.penyulang).filter(Boolean))];
+  sel.innerHTML = '<option value="all">Semua Penyulang</option>' + penySet.map(p => `<option value="${p}">${p}</option>`).join('');
+
+  function applyFilter() {
+    const f = document.getElementById('filterLate').value;
+    const p = document.getElementById('filterPenyulangLate').value;
+    let list = [];
+    if (f === 'never') list = buckets.never;
+    else if (f === 'all') list = buckets[3];
+    else list = buckets[parseInt(f)];
+    if (p !== 'all') list = list.filter(r => r.penyulang === p);
+
+    // Sort by date asc (oldest first)
+    list = list.slice().sort((a, b) => {
+      const da = parseDate(a.tgl_ukur);
+      const db = parseDate(b.tgl_ukur);
+      if (!da) return 1;
+      if (!db) return -1;
+      return da - db;
+    });
+
+    const tbody = document.querySelector('#lateTable tbody');
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:30px">Tidak ada data</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((r, i) => {
+      const d = parseDate(r.tgl_ukur);
+      const m = d ? monthsBetween(d, today) : null;
+      let badge = '<span class="badge info">N/A</span>';
+      if (m === null) badge = '<span class="badge warning">Belum diukur</span>';
+      else if (m >= 6) badge = '<span class="badge danger">≥6 bulan</span>';
+      else if (m >= 5) badge = '<span class="badge danger">≥5 bulan</span>';
+      else if (m >= 4) badge = '<span class="badge warning">≥4 bulan</span>';
+      else badge = '<span class="badge warning">≥3 bulan</span>';
+      return `<tr>
+        <td>${i + 1}</td>
+        <td><b>${r.nogardu}</b></td>
+        <td>${r.penyulang || '-'}</td>
+        <td>${r.alamat || '-'}</td>
+        <td>${fmtNum(r.daya_kva)}</td>
+        <td>${d ? fmtDate(d) : '-'}</td>
+        <td>${m !== null ? m.toFixed(1) + ' bln' : '-'}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('filterLate').onchange = applyFilter;
+  document.getElementById('filterPenyulangLate').onchange = applyFilter;
+  applyFilter();
+}
+
+// =================== LOAD STATUS ===================
+function renderLoad() {
+  if (state.records.length === 0) {
+    document.getElementById('loadStats').innerHTML = '<div class="empty-state" style="grid-column:1/-1">Belum ada data.</div>';
+    document.querySelector('#loadTable tbody').innerHTML = '';
+    return;
+  }
+  const recs = state.records;
+  const thOL = state.settings.thOverload, thUL = state.settings.thUnderload;
+
+  const ol = recs.filter(r => r.prosen !== null && r.prosen > thOL);
+  const ul = recs.filter(r => r.prosen !== null && r.prosen < thUL);
+  const norm = recs.filter(r => r.prosen !== null && r.prosen >= thUL && r.prosen <= thOL);
+  const imb = recs.filter(r => r.tdk_seimbang !== null && r.tdk_seimbang > 20);
+
+  document.getElementById('loadStats').innerHTML = `
+    <div class="stat-card danger">
+      <div class="stat-label">OVERLOAD (>${thOL}%)</div>
+      <div class="stat-value">${ol.length}</div>
+      <div class="stat-sub">perlu pemecahan beban</div>
+    </div>
+    <div class="stat-card success">
+      <div class="stat-label">NORMAL</div>
+      <div class="stat-value">${norm.length}</div>
+      <div class="stat-sub">${thUL}% - ${thOL}%</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-label">UNDERLOAD (&lt;${thUL}%)</div>
+      <div class="stat-value">${ul.length}</div>
+      <div class="stat-sub">utilisasi rendah</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-label">TDK SEIMBANG (>20%)</div>
+      <div class="stat-value">${imb.length}</div>
+      <div class="stat-sub">perlu balancing</div>
+    </div>
+  `;
+
+  // Header info
+  if (state.currentUpload) {
+    const u = state.currentUpload;
+    document.getElementById('loadSSSub').textContent =
+      `${u.uw_text || ''} ${u.up3_text || ''} ${u.ulp_text || ''} — Periode: ${u.periode || '-'}`;
+  }
+  document.getElementById('loadSSDate').textContent = 'Dicetak: ' + fmtDate(new Date());
+
+  // Penyulang filter
+  const sel = document.getElementById('filterPenyulangLoad');
+  const penySet = [...new Set(recs.map(r => r.penyulang).filter(Boolean))];
+  sel.innerHTML = '<option value="all">Semua Penyulang</option>' + penySet.map(p => `<option value="${p}">${p}</option>`).join('');
+
+  function apply() {
+    const sf = document.getElementById('filterStatus').value;
+    const pf = document.getElementById('filterPenyulangLoad').value;
+    let list = recs.slice();
+    if (sf === 'overload') list = ol;
+    else if (sf === 'underload') list = ul;
+    else if (sf === 'normal') list = norm;
+    if (pf !== 'all') list = list.filter(r => r.penyulang === pf);
+    list.sort((a, b) => (b.prosen || 0) - (a.prosen || 0));
+
+    const tbody = document.querySelector('#loadTable tbody');
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#6b7280;padding:30px">Tidak ada data</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((r, i) => {
+      let badge = '<span class="badge info">-</span>';
+      if (r.prosen !== null) {
+        if (r.prosen > thOL) badge = '<span class="badge danger">OVERLOAD</span>';
+        else if (r.prosen < thUL) badge = '<span class="badge warning">UNDERLOAD</span>';
+        else badge = '<span class="badge success">NORMAL</span>';
+      }
+      return `<tr>
+        <td>${i + 1}</td>
+        <td><b>${r.nogardu}</b></td>
+        <td>${r.penyulang || '-'}</td>
+        <td>${fmtNum(r.daya_kva)}</td>
+        <td>${fmtNum(r.daya_pakai, 2)}</td>
+        <td>${r.prosen !== null ? r.prosen.toFixed(2) + '%' : '-'}</td>
+        <td>${r.tdk_seimbang !== null ? r.tdk_seimbang.toFixed(2) + '%' : '-'}</td>
+        <td>${r.tgl_ukur || '-'}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('filterStatus').onchange = apply;
+  document.getElementById('filterPenyulangLoad').onchange = apply;
+  document.getElementById('applyThreshold').onclick = () => {
+    state.settings.thOverload = parseFloat(document.getElementById('thOverload').value) || 80;
+    state.settings.thUnderload = parseFloat(document.getElementById('thUnderload').value) || 30;
+    persistSettings();
+    renderLoad();
+  };
+  document.getElementById('thOverload').value = state.settings.thOverload;
+  document.getElementById('thUnderload').value = state.settings.thUnderload;
+  apply();
+}
+
+// =================== ASSET OVERVIEW ===================
+function renderAsset() {
+  if (state.records.length === 0) {
+    document.getElementById('assetStats').innerHTML = '<div class="empty-state" style="grid-column:1/-1">Belum ada data.</div>';
+    return;
+  }
+  const recs = state.records;
+  const total = recs.length;
+  const totalCap = recs.reduce((s, r) => s + (r.daya_kva || 0), 0);
+  const totalDP = recs.reduce((s, r) => s + (r.daya_pakai || 0), 0);
+  const avgLoad = recs.filter(r => r.prosen !== null).reduce((s, r, _, a) => s + r.prosen / a.length, 0);
+  const penyulang = new Set(recs.map(r => r.penyulang).filter(Boolean));
+  const petugas = new Set(recs.map(r => r.petugas).filter(Boolean));
+  const phases = new Set(recs.map(r => r.fasa).filter(Boolean));
+
+  document.getElementById('assetStats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">TOTAL GARDU</div>
+      <div class="stat-value">${total}</div>
+      <div class="stat-sub">unit aset</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">KAPASITAS TOTAL</div>
+      <div class="stat-value">${fmtNum(totalCap)}</div>
+      <div class="stat-sub">kVA</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">DAYA PAKAI</div>
+      <div class="stat-value">${fmtNum(totalDP, 0)}</div>
+      <div class="stat-sub">kVA dari pengukuran</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">UTILISASI RATA-RATA</div>
+      <div class="stat-value">${avgLoad.toFixed(1)}%</div>
+      <div class="stat-sub">rata-rata pembebanan</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">JUMLAH PENYULANG</div>
+      <div class="stat-value">${penyulang.size}</div>
+      <div class="stat-sub">${[...penyulang].join(', ').slice(0, 40)}${[...penyulang].join(', ').length > 40 ? '...' : ''}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">PETUGAS UKUR</div>
+      <div class="stat-value">${petugas.size}</div>
+      <div class="stat-sub">orang aktif</div>
+    </div>
+  `;
+
+  if (state.currentUpload) {
+    const u = state.currentUpload;
+    document.getElementById('assetSSSub').textContent =
+      `${u.uw_text || ''} ${u.up3_text || ''} ${u.ulp_text || ''} — ${u.periode || ''}`;
+  }
+  document.getElementById('assetSSDate').textContent = 'Dicetak: ' + fmtDate(new Date());
+
+  // By feeder
+  const byFeeder = {};
+  recs.forEach(r => {
+    const k = r.penyulang || 'N/A';
+    if (!byFeeder[k]) byFeeder[k] = { count: 0, cap: 0, loadSum: 0, loadN: 0 };
+    byFeeder[k].count++;
+    byFeeder[k].cap += r.daya_kva || 0;
+    if (r.prosen !== null) { byFeeder[k].loadSum += r.prosen; byFeeder[k].loadN++; }
+  });
+  document.querySelector('#assetByFeeder tbody').innerHTML = Object.entries(byFeeder)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([k, v]) => `<tr>
+      <td><b>${k}</b></td>
+      <td>${v.count}</td>
+      <td>${fmtNum(v.cap)}</td>
+      <td>${v.loadN ? (v.loadSum / v.loadN).toFixed(1) + '%' : '-'}</td>
+    </tr>`).join('');
+
+  // By daya
+  const byDaya = {};
+  recs.forEach(r => {
+    const k = r.daya_kva || 'N/A';
+    if (!byDaya[k]) byDaya[k] = { count: 0, cap: 0 };
+    byDaya[k].count++;
+    byDaya[k].cap += r.daya_kva || 0;
+  });
+  document.querySelector('#assetByDaya tbody').innerHTML = Object.entries(byDaya)
+    .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+    .map(([k, v]) => `<tr>
+      <td><b>${k} kVA</b></td>
+      <td>${v.count}</td>
+      <td>${fmtNum(v.cap)}</td>
+      <td>${((v.cap / totalCap) * 100).toFixed(1)}%</td>
+    </tr>`).join('');
+}
+
+// =================== SCREENSHOT ===================
+async function screenshotElement(id, name) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  try {
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      logging: false,
+      useCORS: true
+    });
+    const link = document.createElement('a');
+    link.download = `sigardu-${name}-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    logEvent('export', `Export gambar: ${name}.png`, { element: id });
+  } catch (e) {
+    alert('Gagal export gambar: ' + e.message);
+  }
+}
+
+// =================== WAG MESSAGE ===================
+function generateWag() {
+  if (state.records.length === 0) {
+    alert('Upload dokumen terlebih dahulu');
+    return;
+  }
+  state.settings.tagULP = document.getElementById('tagULP').value || '@TL_ULP';
+  state.settings.tagASMAN = document.getElementById('tagASMAN').value || '@ASMAN';
+  state.settings.tagHAR = document.getElementById('tagHAR').value || '@TL_HAR';
+  persistSettings();
+
+  const recs = state.records;
+  const today = new Date();
+  const thOL = state.settings.thOverload, thUL = state.settings.thUnderload;
+  const late3 = recs.filter(r => { const d = parseDate(r.tgl_ukur); return d && monthsBetween(d, today) >= 3 && monthsBetween(d, today) < 4; });
+  const late4 = recs.filter(r => { const d = parseDate(r.tgl_ukur); return d && monthsBetween(d, today) >= 4 && monthsBetween(d, today) < 5; });
+  const late5 = recs.filter(r => { const d = parseDate(r.tgl_ukur); return d && monthsBetween(d, today) >= 5 && monthsBetween(d, today) < 6; });
+  const late6 = recs.filter(r => { const d = parseDate(r.tgl_ukur); return d && monthsBetween(d, today) >= 6; });
+  const ol = recs.filter(r => r.prosen !== null && r.prosen > thOL);
+  const ul = recs.filter(r => r.prosen !== null && r.prosen < thUL);
+
+  const u = state.currentUpload || state.uploads[0] || {};
+  const note = document.getElementById('tagNote').value;
+
+  const msg =
+`*🔔 LAPORAN ANALISIS PENGUKURAN GARDU*
+${u.uw_text || ''}
+${u.up3_text || ''}
+${u.ulp_text || ''}
+Periode: ${u.periode || '-'}
+
+Mohon perhatian:
+${state.settings.tagULP}
+${state.settings.tagASMAN}
+${state.settings.tagHAR}
+
+📊 *RINGKASAN*
+• Total Gardu: *${recs.length} unit*
+• Total Kapasitas: *${fmtNum(recs.reduce((s, r) => s + (r.daya_kva || 0), 0))} kVA*
+
+⏰ *GARDU BELUM DIUKUR*
+• ≥ 3 bulan: *${late3.length} gardu*
+• ≥ 4 bulan: *${late4.length} gardu*
+• ≥ 5 bulan: *${late5.length} gardu*
+• ≥ 6 bulan: *${late6.length} gardu* ⚠️
+
+⚡ *STATUS BEBAN*
+• Overload (>${thOL}%): *${ol.length} gardu*
+• Underload (<${thUL}%): *${ul.length} gardu*
+
+${ol.length > 0 ? '🚨 *GARDU OVERLOAD:*\n' + ol.slice(0, 10).map(r => `• ${r.nogardu} (${r.penyulang}) — ${r.prosen.toFixed(1)}%`).join('\n') : ''}
+${late6.length > 0 ? '\n\n📌 *PRIORITAS (>6 bulan belum diukur):*\n' + late6.slice(0, 10).map(r => `• ${r.nogardu} (${r.penyulang}) — ${r.tgl_ukur}`).join('\n') : ''}
+
+${note ? '\n📝 *Catatan:* ' + note : ''}
+
+Mohon segera ditindaklanjuti. Terima kasih 🙏
+_Dibuat otomatis oleh SIGARDU - ${fmtDate(today)}_`;
+
+  document.getElementById('wagPreview').textContent = msg;
+  document.getElementById('wagPreview').style.color = '';
+  document.getElementById('wagPreview').style.fontStyle = '';
+
+  logEvent('wag', 'Pesan WAG digenerate', { records: recs.length });
+}
+
+document.getElementById('genWag').addEventListener('click', generateWag);
+document.getElementById('copyWag').addEventListener('click', async () => {
+  const text = document.getElementById('wagPreview').textContent;
+  if (!text || text.includes('Klik')) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('Pesan disalin ke clipboard!');
+  } catch (e) {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('Pesan disalin ke clipboard!');
+  }
+});
+document.getElementById('shareWa').addEventListener('click', () => {
+  const text = document.getElementById('wagPreview').textContent;
+  if (!text || text.includes('Klik')) {
+    alert('Generate pesan terlebih dahulu');
+    return;
+  }
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+});
+
+// Init tag fields from settings
+['tagULP', 'tagASMAN', 'tagHAR'].forEach(k => {
+  const el = document.getElementById(k);
+  el.value = state.settings[k] || '';
+  el.addEventListener('blur', () => {
+    state.settings[k] = el.value;
+    persistSettings();
+  });
+});
+
+// =================== BACKLOG ===================
+function renderBacklog() {
+  const access = state.log.filter(l => l.type === 'access').length;
+  const uploads = state.log.filter(l => l.type === 'upload').length;
+  const exports = state.log.filter(l => l.type === 'export').length;
+  const wags = state.log.filter(l => l.type === 'wag').length;
+
+  const el = id => document.getElementById(id);
+  if (el('bgTotalAccess')) el('bgTotalAccess').textContent = access;
+  if (el('bgTotalUpload')) el('bgTotalUpload').textContent = uploads;
+  if (el('bgTotalExport')) el('bgTotalExport').textContent = exports;
+  if (el('bgTotalWag')) el('bgTotalWag').textContent = wags;
+
+  const list = document.getElementById('backlogList');
+  if (!list) return;
+  if (state.log.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:30px"><p>Belum ada aktivitas tercatat</p></div>';
+    return;
+  }
+  const icons = {
+    access: '🔑', upload: '📤', export: '🖼️', wag: '💬'
+  };
+  list.innerHTML = state.log.slice(0, 100).map(l => `
+    <div class="backlog-item">
+      <div class="backlog-icon">${icons[l.type] || '•'}</div>
+      <div class="backlog-content">
+        <div>${l.description}</div>
+        <div class="backlog-time">${new Date(l.timestamp).toLocaleString('id-ID')} · <span class="badge info">${l.type}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('clearBacklog').addEventListener('click', () => {
+  if (confirm('Bersihkan semua log aktivitas?')) {
+    state.log = [];
+    persistLog();
+    renderBacklog();
+  }
+});
+
+// =================== INIT ===================
+loadState();
+logEvent('access', 'Aplikasi dibuka');
+updateFileInfo();
+renderDashboard();
+renderBacklog();
+</script>
+</body>
+</html>
