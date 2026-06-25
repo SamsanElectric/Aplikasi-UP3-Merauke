@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzOGS_rPVO-FVI4a947A7uygoewm_aBNxaUoRh_ApI-ySsXnPooWd2jasUJJ_pAZ_-c/exec";
+const SHEET_API = "https://docs.google.com/spreadsheets/d/124-TV0rQEl1tmTaOEP-zlWY1Y4QdphhYENoWn-W-z58/gviz/tq?tqx=out:json&gid=1762573641";
 
 let rawData = [];
 let filteredData = [];
@@ -29,6 +29,12 @@ const ocrRow = document.getElementById("ocrRow");
 const gfrRow = document.getElementById("gfrRow");
 const extraBox = document.getElementById("extraBox");
 const tableBody = document.getElementById("tableBody");
+const mobileList = document.getElementById("mobileList");
+
+const statusOCR = document.getElementById("statusOCR");
+const statusGFR = document.getElementById("statusGFR");
+const statusCT = document.getElementById("statusCT");
+const statusExtra = document.getElementById("statusExtra");
 
 /* =========================
    HELPERS
@@ -38,49 +44,12 @@ function safe(v) {
   return String(v).trim();
 }
 
-function numLike(v) {
-  return safe(v).replace(/\./g, "").replace(",", ".");
-}
-
 function sortAlpha(a, b) {
   return a.localeCompare(b, "id", { sensitivity: "base", numeric: true });
 }
 
 function getSearchBlob(item) {
-  return [
-    item.no,
-    item.nama_lokasi,
-    item.zona_aktif,
-    item.lokasi,
-    item.z1,
-    item.z2,
-    item.z3,
-    item.z4,
-    item.z5,
-    item.z6,
-    item.merek,
-    item.tipe,
-    item.pemutus,
-    item.ct_ratio,
-    item.relay,
-    item.beban_kw,
-    item.ocr_i,
-    item.ocr_tms,
-    item.ocr_curve,
-    item.ocr_ii,
-    item.ocr_delay,
-    item.ocr_curve_hs,
-    item.gfr_i,
-    item.gfr_tms,
-    item.gfr_curve,
-    item.gfr_ii,
-    item.gfr_delay,
-    item.gfr_curve_hs,
-    item.proteksi_tambahan
-  ]
-    .map(safe)
-    .join(" ")
-    .toLowerCase();
+  return Object.values(item).map(safe).join(" ").toLowerCase();
 }
 
 function highlightRowByIndex(idx) {
@@ -92,39 +61,135 @@ function highlightRowByIndex(idx) {
   if (active) active.classList.add("active-row");
 }
 
-function normalizeData(data) {
-  return (data || []).map((d, i) => ({
-    _id: i + 1,
-    no: safe(d.no),
-    nama_lokasi: safe(d.nama_lokasi || d.lokasi),
-    zona_aktif: safe(d.zona_aktif),
-    lokasi: safe(d.lokasi),
-    z1: safe(d.z1),
-    z2: safe(d.z2),
-    z3: safe(d.z3),
-    z4: safe(d.z4),
-    z5: safe(d.z5),
-    z6: safe(d.z6),
-    merek: safe(d.merek),
-    tipe: safe(d.tipe),
-    pemutus: safe(d.pemutus),
-    ct_ratio: safe(d.ct_ratio),
-    relay: safe(d.relay),
-    beban_kw: safe(d.beban_kw),
-    ocr_i: safe(d.ocr_i),
-    ocr_tms: safe(d.ocr_tms),
-    ocr_curve: safe(d.ocr_curve),
-    ocr_ii: safe(d.ocr_ii),
-    ocr_delay: safe(d.ocr_delay),
-    ocr_curve_hs: safe(d.ocr_curve_hs),
-    gfr_i: safe(d.gfr_i),
-    gfr_tms: safe(d.gfr_tms),
-    gfr_curve: safe(d.gfr_curve),
-    gfr_ii: safe(d.gfr_ii),
-    gfr_delay: safe(d.gfr_delay),
-    gfr_curve_hs: safe(d.gfr_curve_hs),
-    proteksi_tambahan: safe(d.proteksi_tambahan)
-  }));
+/* =========================
+   PARSE GOOGLE SHEET GVIZ
+========================= */
+function parseGvizResponse(text) {
+  // format gviz: google.visualization.Query.setResponse({...});
+  const jsonText = text
+    .replace("google.visualization.Query.setResponse(", "")
+    .replace(/\);$/, "");
+
+  const obj = JSON.parse(jsonText);
+  const rows = obj.table.rows || [];
+
+  // ambil data dari row ke-3 dst (baris 1-2 header)
+  const result = [];
+
+  rows.forEach((row, idx) => {
+    const cells = (row.c || []).map(c => (c && c.v !== null && c.v !== undefined) ? String(c.v) : "");
+
+    // skip 2 baris header awal
+    if (idx < 2) return;
+
+    const no = safe(cells[0]);
+    const lokasi = safe(cells[1]);
+
+    const z1 = safe(cells[2]);
+    const z2 = safe(cells[3]);
+    const z3 = safe(cells[4]);
+    const z4 = safe(cells[5]);
+    const z5 = safe(cells[6]);
+    const z6 = safe(cells[7]);
+
+    const merek = safe(cells[8]);
+    const tipe = safe(cells[9]);
+    const pemutus = safe(cells[10]);
+    const ct_ratio = safe(cells[11]);
+    const relay = safe(cells[12]);
+    const beban_kw = safe(cells[13]);
+
+    const ocr_i = safe(cells[14]);
+    const ocr_tms = safe(cells[15]);
+    const ocr_curve = safe(cells[16]);
+    const ocr_ii = safe(cells[17]);
+    const ocr_delay = safe(cells[18]);
+    const ocr_curve_hs = safe(cells[19]);
+
+    const gfr_i = safe(cells[20]);
+    const gfr_tms = safe(cells[21]);
+    const gfr_curve = safe(cells[22]);
+    const gfr_ii = safe(cells[23]);
+    const gfr_delay = safe(cells[24]);
+    const gfr_curve_hs = safe(cells[25]);
+
+    const proteksi_tambahan = safe(cells[26]);
+
+    // skip baris kosong
+    const gabung = cells.join("").trim();
+    if (!gabung) return;
+
+    // skip baris header internal yang ikut kebaca
+    if (
+      lokasi === "Z1" ||
+      z1 === "Z2" ||
+      z2 === "Z3" ||
+      z3 === "Z4" ||
+      z4 === "Z5" ||
+      z5 === "Z6" ||
+      z6 === "MEREK"
+    ) {
+      return;
+    }
+
+    // tentukan nama lokasi aktif
+    let nama_lokasi = "";
+    let zona_aktif = "";
+
+    if (lokasi) {
+      nama_lokasi = lokasi;
+      zona_aktif = "LOKASI";
+    } else if (z1) {
+      nama_lokasi = z1;
+      zona_aktif = "Z1";
+    } else if (z2) {
+      nama_lokasi = z2;
+      zona_aktif = "Z2";
+    } else if (z3) {
+      nama_lokasi = z3;
+      zona_aktif = "Z3";
+    } else if (z4) {
+      nama_lokasi = z4;
+      zona_aktif = "Z4";
+    } else if (z5) {
+      nama_lokasi = z5;
+      zona_aktif = "Z5";
+    } else if (z6) {
+      nama_lokasi = z6;
+      zona_aktif = "Z6";
+    }
+
+    if (!nama_lokasi) return;
+
+    result.push({
+      no,
+      nama_lokasi,
+      zona_aktif,
+      lokasi,
+      z1, z2, z3, z4, z5, z6,
+      merek,
+      tipe,
+      pemutus,
+      ct_ratio,
+      relay,
+      beban_kw,
+      ocr_i,
+      ocr_tms,
+      ocr_curve,
+      ocr_ii,
+      ocr_delay,
+      ocr_curve_hs,
+      gfr_i,
+      gfr_tms,
+      gfr_curve,
+      gfr_ii,
+      gfr_delay,
+      gfr_curve_hs,
+      proteksi_tambahan
+    });
+  });
+
+  return result;
 }
 
 /* =========================
@@ -134,22 +199,19 @@ async function loadData() {
   try {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="11" style="padding:18px;text-align:center;">Memuat data...</td>
+        <td colspan="8" style="padding:18px;text-align:center;">Memuat data...</td>
       </tr>
     `;
 
-    const res = await fetch(API_URL, { method: "GET" });
-    const json = await res.json();
+    const res = await fetch(SHEET_API);
+    const text = await res.text();
 
-    if (!json.success) {
-      throw new Error(json.error || "Apps Script tidak mengembalikan data");
-    }
-
-    rawData = normalizeData(json.data || []);
+    rawData = parseGvizResponse(text);
     filteredData = [...rawData];
 
     buildFilters(rawData);
     renderTable(filteredData);
+    renderMobileList(filteredData);
     updateCounters(filteredData);
 
     if (filteredData.length > 0) {
@@ -162,12 +224,11 @@ async function loadData() {
     console.error("Load data error:", err);
     tableBody.innerHTML = `
       <tr>
-        <td colspan="11" style="padding:20px;color:red;text-align:center;">
+        <td colspan="8" style="padding:20px;color:red;text-align:center;">
           Gagal memuat data: ${err.message}
         </td>
       </tr>
     `;
-    clearDetail();
   }
 }
 
@@ -233,6 +294,7 @@ function applyFilters() {
   });
 
   renderTable(filteredData);
+  renderMobileList(filteredData);
   updateCounters(filteredData);
 
   if (filteredData.length > 0) {
@@ -244,7 +306,7 @@ function applyFilters() {
 }
 
 /* =========================
-   TABLE
+   TABLE + MOBILE
 ========================= */
 function renderTable(data) {
   if (!tableBody) return;
@@ -252,33 +314,24 @@ function renderTable(data) {
   if (!data.length) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="11" style="padding:20px;text-align:center;">
-          Data tidak ditemukan
-        </td>
+        <td colspan="8" style="padding:20px;text-align:center;">Data tidak ditemukan</td>
       </tr>
     `;
     return;
   }
 
-  tableBody.innerHTML = data
-    .map((d, i) => {
-      return `
-        <tr data-index="${i}">
-          <td>${d.no || i + 1}</td>
-          <td>${d.nama_lokasi || "-"}</td>
-          <td>${d.zona_aktif || "-"}</td>
-          <td>${d.pemutus || "-"}</td>
-          <td>${d.merek || "-"}</td>
-          <td>${d.tipe || "-"}</td>
-          <td>${d.ct_ratio || "-"}</td>
-          <td>${d.relay || "-"}</td>
-          <td>${d.beban_kw || "-"}</td>
-          <td>${d.ocr_i || "-"}</td>
-          <td>${d.gfr_i || "-"}</td>
-        </tr>
-      `;
-    })
-    .join("");
+  tableBody.innerHTML = data.map((d, i) => `
+    <tr data-index="${i}">
+      <td>${d.no || i + 1}</td>
+      <td>${d.nama_lokasi || "-"}</td>
+      <td>${d.zona_aktif || "-"}</td>
+      <td>${d.pemutus || "-"}</td>
+      <td>${d.merek || "-"}</td>
+      <td>${d.relay || "-"}</td>
+      <td>${d.ocr_i || "-"}</td>
+      <td>${d.gfr_i || "-"}</td>
+    </tr>
+  `).join("");
 
   document.querySelectorAll("#tableBody tr").forEach((row, idx) => {
     row.addEventListener("click", () => {
@@ -290,24 +343,52 @@ function renderTable(data) {
   highlightRowByIndex(selectedIndex);
 }
 
-/* =========================
-   DETAIL PANEL
-========================= */
-function showDetail(d, idx = 0) {
-  if (!d) {
-    clearDetail();
+function renderMobileList(data) {
+  if (!mobileList) return;
+  if (!data.length) {
+    mobileList.innerHTML = `<div class="mobile-card">Data tidak ditemukan</div>`;
     return;
   }
+
+  mobileList.innerHTML = data.map((d, i) => `
+    <div class="mobile-card" data-index="${i}">
+      <div class="mobile-title">${d.nama_lokasi || "-"}</div>
+      <div class="mobile-meta">
+        <span>${d.zona_aktif || "-"}</span>
+        <span>${d.pemutus || "-"}</span>
+      </div>
+      <div class="mobile-sub">OCR: ${d.ocr_i || "-"} | GFR: ${d.gfr_i || "-"}</div>
+    </div>
+  `).join("");
+
+  mobileList.querySelectorAll(".mobile-card").forEach((card, idx) => {
+    card.addEventListener("click", () => {
+      selectedIndex = idx;
+      showDetail(data[idx], idx);
+    });
+  });
+}
+
+/* =========================
+   DETAIL
+========================= */
+function showDetail(d, idx = 0) {
+  if (!d) return clearDetail();
 
   selectedIndex = idx;
 
   if (activeLokasi) activeLokasi.textContent = d.nama_lokasi || "-";
   if (sumLokasi) sumLokasi.textContent = d.nama_lokasi || "-";
   if (sumPemutus) sumPemutus.textContent = d.pemutus || "-";
-  if (sumCt) sumCt.textContent = d.ct_ratio || "-";
-  if (sumRelay) sumRelay.textContent = d.relay || "-";
-  if (sumBeban) sumBeban.textContent = d.beban_kw || "-";
-  if (sumZona) sumZona.textContent = d.zona_aktif || "-";
+  if (sumCt) sumCt.textContent = `CT ${d.ct_ratio || "-"}`;
+  if (sumRelay) sumRelay.textContent = `Relay ${d.relay || "-"}`;
+  if (sumBeban) sumBeban.textContent = `Beban ${d.beban_kw || "-"}`;
+  if (sumZona) sumZona.textContent = `Zona ${d.zona_aktif || "-"}`;
+
+  if (statusOCR) statusOCR.textContent = d.ocr_i ? "TERISI" : "KOSONG";
+  if (statusGFR) statusGFR.textContent = d.gfr_i ? "TERISI" : "KOSONG";
+  if (statusCT) statusCT.textContent = d.ct_ratio ? d.ct_ratio : "KOSONG";
+  if (statusExtra) statusExtra.textContent = d.proteksi_tambahan ? "ADA" : "TIDAK ADA";
 
   if (infoGrid) {
     infoGrid.innerHTML = `
@@ -363,7 +444,7 @@ function showDetail(d, idx = 0) {
 }
 
 /* =========================
-   CLEAR DETAIL
+   CLEAR
 ========================= */
 function clearDetail() {
   if (activeLokasi) activeLokasi.textContent = "-";
@@ -373,54 +454,19 @@ function clearDetail() {
   if (sumRelay) sumRelay.textContent = "-";
   if (sumBeban) sumBeban.textContent = "-";
   if (sumZona) sumZona.textContent = "-";
-
-  if (infoGrid) {
-    infoGrid.innerHTML = `
-      <div class="info-item"><span>Lokasi / Recloser</span><strong>-</strong></div>
-      <div class="info-item"><span>Zona Aktif</span><strong>-</strong></div>
-      <div class="info-item"><span>Pemutus</span><strong>-</strong></div>
-      <div class="info-item"><span>Merek</span><strong>-</strong></div>
-      <div class="info-item"><span>Tipe</span><strong>-</strong></div>
-      <div class="info-item"><span>CT Ratio</span><strong>-</strong></div>
-      <div class="info-item"><span>Relay / Arus</span><strong>-</strong></div>
-      <div class="info-item"><span>Beban (kW)</span><strong>-</strong></div>
-    `;
-  }
-
-  if (zoneGrid) {
-    zoneGrid.innerHTML = `
-      <div class="zone"><span>Z1</span><strong>-</strong></div>
-      <div class="zone"><span>Z2</span><strong>-</strong></div>
-      <div class="zone"><span>Z3</span><strong>-</strong></div>
-      <div class="zone"><span>Z4</span><strong>-</strong></div>
-      <div class="zone"><span>Z5</span><strong>-</strong></div>
-      <div class="zone"><span>Z6</span><strong>-</strong></div>
-    `;
-  }
-
-  if (ocrRow) {
-    ocrRow.innerHTML = `<td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>`;
-  }
-
-  if (gfrRow) {
-    gfrRow.innerHTML = `<td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>`;
-  }
-
-  if (extraBox) {
-    extraBox.textContent = "Belum ada data";
-  }
+  if (statusOCR) statusOCR.textContent = "-";
+  if (statusGFR) statusGFR.textContent = "-";
+  if (statusCT) statusCT.textContent = "-";
+  if (statusExtra) statusExtra.textContent = "-";
 }
 
 /* =========================
-   COUNTER
+   COUNTER / RESET
 ========================= */
 function updateCounters(data) {
   if (totalData) totalData.textContent = data.length;
 }
 
-/* =========================
-   RESET
-========================= */
 function resetFilters() {
   if (lokasiFilter) lokasiFilter.value = "";
   if (pemutusFilter) pemutusFilter.value = "";
@@ -429,6 +475,7 @@ function resetFilters() {
 
   filteredData = [...rawData];
   renderTable(filteredData);
+  renderMobileList(filteredData);
   updateCounters(filteredData);
 
   if (filteredData.length > 0) {
