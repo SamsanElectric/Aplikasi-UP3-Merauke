@@ -1,6 +1,6 @@
 // Ganti URL ini kalau membuat DEPLOYMENT BARU di Apps Script
 // (kalau cuma "New version" pada deployment yang sama, URL ini TIDAK berubah).
-const API_URL = "https://script.google.com/macros/s/AKfycbzOGS_rPVO-FVI4a947A7uygoewm_aBNxaUoRh_ApI-ySsXnPooWd2jasUJJ_pAZ_-c/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzR4VSQTlhkYq0tSfJRCZfLzq_H4jXBsqCZjI-JdBwgcGXPNxOrsvMFH0iHrwViOUU3/exec";
 
 let rawData = [];
 let filteredData = [];
