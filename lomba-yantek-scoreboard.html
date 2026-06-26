@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Lomba Yantek — Penilaian & Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pln-blue:#0F4C9C;
+    --pln-blue-dark:#082A57;
+    --night:#0A1730;
+    --night-2:#0F2142;
+    --night-3:#16294E;
+    --amber:#FFC83D;
+    --amber-deep:#E6A815;
+    --green:#34D399;
+    --red:#F2545B;
+    --silver:#B9C6DE;
+    --bronze:#D98E5B;
+    --ink:#0B1B33;
+    --paper:#EFF3FB;
+    --paper-2:#FFFFFF;
+    --line:#D8E1F2;
+    --muted:#5B7299;
+    --white:#EDF2FB;
+    --font-display:'Rajdhani',sans-serif;
+    --font-body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font-body);
+    background:var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    transition:background .3s ease;
+  }
+  body.theme-dark{background:var(--night);color:var(--white);}
+  #app{min-height:100vh;}
+  .screen{display:none;min-height:100vh;}
+  .screen.active{display:block;}
+
+  /* ---------- shared bits ---------- */
+  .bolt{display:inline-block;width:1em;height:1em;vertical-align:-0.15em;}
+  .bolt path{fill:currentColor;}
+  .topbar{
+    display:flex;align-items:center;gap:12px;
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+    background:var(--paper-2);
+    position:sticky;top:0;z-index:5;
+  }
+  body.theme-dark .topbar{background:var(--night-2);border-bottom:1px solid var(--night-3);}
+  .topbar .back{
+    width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+    background:var(--paper-2);color:var(--muted);font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  body.theme-dark .topbar .back{border-color:var(--night-3);background:var(--night-3);color:var(--white);}
+  .topbar h1{font-family:var(--font-display);font-weight:700;font-size:18px;margin:0;letter-spacing:.2px;flex:1;}
+  .container{max-width:560px;margin:0 auto;padding:20px;}
+
+  .card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:16px;
+    padding:18px;margin-bottom:16px;
+  }
+  .card h2{font-family:var(--font-display);font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--pln-blue);margin:0 0 12px;}
+  label.field-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  input[type=text],input[type=number]{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-family:var(--font-body);font-size:15px;background:var(--paper-2);color:var(--ink);
+  }
+  input[type=text]:focus,input[type=number]:focus{outline:2px solid var(--pln-blue);outline-offset:1px;}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .row input[type=text]{flex:1;}
+  .row .num{width:74px;flex:none;}
+  .iconbtn{
+    width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--paper);
+    color:var(--red);font-size:16px;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;
+  }
+  .addbtn{
+    width:100%;padding:10px;border:1.5px dashed var(--pln-blue);border-radius:10px;
+    background:transparent;color:var(--pln-blue);font-weight:600;cursor:pointer;font-size:14px;margin-top:4px;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:13px 18px;border-radius:12px;border:none;font-weight:700;font-size:15px;
+    cursor:pointer;font-family:var(--font-body);width:100%;
+  }
+  .btn-primary{background:var(--pln-blue);color:#fff;}
+  .btn-primary:active{background:var(--pln-blue-dark);}
+  .btn-amber{background:var(--amber);color:var(--ink);}
+  .btn-ghost{background:transparent;color:var(--red);border:1.5px solid var(--red);}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;}
+  .badge-ok{background:#DEFCEF;color:#0B8A5E;}
+  .badge-warn{background:#FFF1D6;color:#9A6400;}
+
+  /* ---------- mode select ---------- */
+  .hero{
+    padding:48px 20px 20px;text-align:center;
+    background:linear-gradient(180deg,var(--pln-blue) 0%, var(--pln-blue-dark) 100%);
+    color:#fff;
+  }
+  .hero .bolt{width:34px;height:34px;color:var(--amber);}
+  .hero h1{font-family:var(--font-display);font-size:26px;margin:10px 0 4px;letter-spacing:.3px;}
+  .hero p{margin:0;opacity:.85;font-size:14px;}
+  .modecards{padding:22px 20px;max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
+  .modecard{
+    display:flex;align-items:center;gap:14px;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:16px;
+    padding:18px;cursor:pointer;text-align:left;
+  }
+  .modecard:active{background:#E6ECF8;}
+  .modecard .mc-icon{
+    width:46px;height:46px;border-radius:12px;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .modecard.c1 .mc-icon{background:#E7F0FF;color:var(--pln-blue);}
+  .modecard.c2 .mc-icon{background:#FFF3DC;color:var(--amber-deep);}
+  .modecard.c3 .mc-icon{background:#0F2142;color:var(--amber);}
+  .modecard h3{margin:0 0 2px;font-family:var(--font-display);font-size:16px;}
+  .modecard p{margin:0;font-size:13px;color:var(--muted);}
+
+  /* ---------- judge: peserta list ---------- */
+  .juriline{display:flex;align-items:center;gap:8px;padding:10px 20px;font-size:13px;color:var(--muted);}
+  .juriline b{color:var(--ink);}
+  .juriline button{margin-left:auto;background:none;border:none;color:var(--pln-blue);font-weight:700;font-size:13px;cursor:pointer;}
+  .pesertabtn{
+    width:100%;display:flex;align-items:center;gap:12px;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:14px;
+    padding:14px 16px;margin-bottom:10px;cursor:pointer;text-align:left;
+  }
+  .pesertabtn .rankdot{
+    width:34px;height:34px;border-radius:50%;background:var(--paper);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:var(--muted);flex:none;
+  }
+  .pesertabtn .pname{flex:1;font-weight:600;font-size:15px;}
+  .statuspill{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:99px;flex:none;}
+  .statuspill.done{background:#DEFCEF;color:#0B8A5E;}
+  .statuspill.todo{background:#F1F3F9;color:var(--muted);}
+
+  /* ---------- judge: scoring card ---------- */
+  .pname-header{padding:18px 20px 4px;text-align:center;}
+  .pname-header .eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .pname-header h2{font-family:var(--font-display);font-size:24px;margin:4px 0 0;}
+  .kriteria-card{padding:16px 18px;}
+  .kriteria-card .ktop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .kriteria-card .knama{font-weight:700;font-size:14.5px;}
+  .kriteria-card .kval{font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--pln-blue);}
+  input[type=range]{
+    width:100%;height:6px;border-radius:99px;background:var(--line);
+    -webkit-appearance:none;appearance:none;outline:none;margin:6px 0 2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+    background:var(--pln-blue);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:50%;background:var(--pln-blue);border:3px solid #fff;cursor:pointer;
+  }
+  .scalecaps{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+  .totalpreview{
+    display:flex;justify-content:space-between;align-items:center;
+    background:var(--pln-blue);color:#fff;border-radius:14px;padding:14px 18px;margin:8px 0 16px;
+  }
+  .totalpreview .tp-label{font-size:12.5px;opacity:.85;font-weight:600;}
+  .totalpreview .tp-val{font-family:var(--font-display);font-size:26px;font-weight:700;}
+
+  /* ---------- setup ---------- */
+  .totalbobot-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+
+  /* ---------- scoreboard (TV) ---------- */
+  .sb-top{
+    display:flex;align-items:center;gap:14px;padding:18px 28px;
+    background:var(--night-2);border-bottom:1px solid var(--night-3);
+  }
+  .sb-top .bolt{width:28px;height:28px;color:var(--amber);}
+  .sb-top h1{font-family:var(--font-display);font-size:clamp(20px,2.6vw,32px);margin:0;flex:1;letter-spacing:.3px;}
+  .livepill{display:flex;align-items:center;gap:7px;background:rgba(242,84,91,.15);border:1px solid rgba(242,84,91,.4);color:#FF8A90;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.06em;}
+  .livedot{width:8px;height:8px;border-radius:50%;background:#FF4D55;animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.75);}}
+  .clock{font-family:var(--font-display);font-size:clamp(16px,2vw,22px);color:var(--silver);font-weight:600;}
+  .sb-back{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 8px;}
+  .sb-fs{background:none;border:1px solid var(--night-3);color:var(--silver);font-size:12px;cursor:pointer;border-radius:8px;padding:6px 10px;}
+  .sb-list{padding:clamp(16px,3vw,34px);max-width:1100px;margin:0 auto;}
+  .sb-row{
+    position:relative;display:flex;align-items:center;gap:clamp(12px,2vw,26px);
+    background:var(--night-2);border:1px solid var(--night-3);border-radius:18px;
+    padding:clamp(12px,1.6vw,20px) clamp(16px,2vw,26px);margin-bottom:14px;overflow:hidden;
+  }
+  .sb-row.r1{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset, 0 10px 30px -10px rgba(255,200,61,.35);}
+  .sb-row.r2{border-color:var(--silver);}
+  .sb-row.r3{border-color:var(--bronze);}
+  .sb-rank{
+    font-family:var(--font-display);font-weight:700;font-size:clamp(22px,3vw,36px);
+    width:clamp(40px,4.5vw,58px);text-align:center;color:var(--silver);flex:none;
+  }
+  .sb-row.r1 .sb-rank{color:var(--amber);}
+  .sb-row.r2 .sb-rank{color:var(--silver);}
+  .sb-row.r3 .sb-rank{color:var(--bronze);}
+  .sb-main{flex:1;min-width:0;}
+  .sb-name{font-family:var(--font-display);font-weight:700;font-size:clamp(16px,2.1vw,24px);}
+  .sb-meta{font-size:clamp(11px,1.1vw,13px);color:var(--muted);margin-top:2px;}
+  .sb-gauge{height:6px;border-radius:99px;background:var(--night-3);margin-top:8px;overflow:hidden;}
+  .sb-gauge-fill{height:100%;border-radius:99px;background:var(--pln-blue);transition:width .8s cubic-bezier(.3,.8,.3,1);}
+  .sb-row.r1 .sb-gauge-fill{background:linear-gradient(90deg,var(--amber-deep),var(--amber));}
+  .sb-score{font-family:var(--font-display);font-weight:700;font-size:clamp(24px,3.4vw,40px);flex:none;text-align:right;min-width:90px;transition:transform .2s ease;}
+  .sb-score small{font-size:.4em;color:var(--muted);font-weight:600;}
+  .sb-score.flash{animation:flash .8s ease;}
+  @keyframes flash{0%{transform:scale(1.18);color:var(--amber);}100%{transform:scale(1);}}
+  .current-flow{
+    position:absolute;left:0;right:0;bottom:0;height:3px;
+    background:repeating-linear-gradient(90deg,var(--amber) 0 14px, transparent 14px 28px);
+    background-size:200% 100%;animation:flow 1.1s linear infinite;
+  }
+  @keyframes flow{from{background-position:0 0;}to{background-position:-56px 0;}}
+  .sb-empty{text-align:center;color:var(--muted);padding:60px 20px;font-size:15px;}
+  .sb-footer{text-align:center;color:var(--muted);font-size:12px;padding:6px 0 26px;}
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:12px 20px;border-radius:99px;font-size:14px;font-weight:600;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:all .25s ease;z-index:50;
+    max-width:90vw;text-align:center;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:480px){
+    .hero{padding:36px 16px 16px;}
+    .modecards{padding:16px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ================= MODE SELECT ================= -->
+  <div class="screen active" id="screen-mode">
+    <div class="hero">
+      <svg class="bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 11-13h-7l0-7Z"/></svg>
+      <h1 id="hero-title">Lomba Yantek</h1>
+      <p>Sistem penilaian juri &amp; scoreboard realtime</p>
+    </div>
+    <div class="modecards">
+      <button class="modecard c1" onclick="goSetup()">
+        <div class="mc-icon">⚙️</div>
+        <div><h3>Setup Acara</h3><p>Atur nama acara, peserta, kriteria &amp; juri</p></div>
+      </button>
+      <button class="modecard c2" onclick="goJudgeStart()">
+        <div class="mc-icon">📝</div>
+        <div><h3>Form Juri</h3><p>Dibuka oleh juri di HP/laptop masing-masing</p></div>
+      </button>
+      <button class="modecard c3" onclick="goScoreboard()">
+        <div class="mc-icon">📺</div>
+        <div><h3>Tampilan Scoreboard</h3><p>Dibuka di laptop yang disambungkan ke TV</p></div>
+      </button>
+    </div>
+    <p style="text-align:center;color:var(--muted);font-size:12.5px;padding:0 20px 28px;">
+      Tip: bagikan tautan halaman ini ke semua juri. Mereka cukup pilih "Form Juri" di HP masing-masing — nilai akan otomatis tampil di Scoreboard.
+    </p>
+  </div>
+
+  <!-- ================= SETUP ================= -->
+  <div class="screen" id="screen-setup">
+    <div class="topbar">
+      <button class="back" onclick="goMode()">←</button>
+      <h1>Setup Acara</h1>
+    </div>
+    <div class="container">
+      <div class="card">
+        <h2>Nama Acara</h2>
+        <input type="text" id="su-eventname" placeholder="contoh: Lomba Yantek UP3 Merauke 2026">
+      </div>
+
+      <div class="card">
+        <h2>Peserta / Tim</h2>
+        <div id="su-peserta-list"></div>
+        <button class="addbtn" onclick="suAddPeserta()">+ Tambah Peserta</button>
+      </div>
+
+      <div class="card">
+        <h2>Kriteria Penilaian</h2>
+        <div class="totalbobot-row">
+          <span class="hint" style="margin:0;">Skala = nilai maksimum · Bobot = persentase pengaruh ke skor akhir</span>
+        </div>
+        <div id="su-total-bobot" style="margin-bottom:10px;"></div>
+        <div id="su-kriteria-list"></div>
+        <button class="addbtn" onclick="suAddKriteria()">+ Tambah Kriteria</button>
+      </div>
+
+      <div class="card">
+        <h2>Juri</h2>
+        <div id="su-juri-list"></div>
+        <button class="addbtn" onclick="suAddJuri()">+ Tambah Juri</button>
+      </div>
+
+      <button class="btn btn-primary" onclick="suSave()" style="margin-bottom:12px;">Simpan Perubahan</button>
+      <button class="btn btn-ghost" onclick="suAskReset()">Reset Semua Nilai</button>
+    </div>
+  </div>
+
+  <!-- ================= JUDGE: pick name ================= -->
+  <div class="screen" id="screen-judge-who">
+    <div class="topbar">
+      <button class="back" onclick="goMode()">←</button>
+      <h1>Form Juri</h1>
+    </div>
+    <div class="container">
+      <div class="card">
+        <h2>Pilih Nama Anda</h2>
+        <div id="jw-list"></div>
+        <p class="hint" id="jw-empty" style="display:none;">Belum ada juri terdaftar. Hubungi admin untuk menambahkannya di Setup Acara.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= JUDGE: peserta list ================= -->
+  <div class="screen" id="screen-judge-list">
+    <div class="topbar">
+      <button class="back" onclick="goJudgeStart()">←</button>
+      <h1>Pilih Peserta</h1>
+    </div>
+    <div class="juriline">Menilai sebagai <b id="jl-juriname">-</b><button onclick="goJudgeStart()">Ganti</button></div>
+    <div class="container" id="jl-list"></div>
+    <p class="hint" id="jl-empty" style="display:none;text-align:center;">Admin belum menambahkan peserta di Setup Acara.</p>
+  </div>
+
+  <!-- ================= JUDGE: scoring ================= -->
+  <div class="screen" id="screen-judge-score">
+    <div class="topbar">
+      <button class="back" onclick="goJudgeList()">←</button>
+      <h1>Beri Nilai</h1>
+    </div>
+    <div class="pname-header">
+      <div class="eyebrow">Peserta / Tim</div>
+      <h2 id="js-pname">-</h2>
+    </div>
+    <div class="container" id="js-kriteria"></div>
+    <div class="container" style="padding-top:0;">
+      <div class="totalpreview">
+        <span class="tp-label">Total dari Anda</span>
+        <span class="tp-val" id="js-total">0</span>
+      </div>
+      <button class="btn btn-primary" onclick="jsSubmit()">Kirim Nilai</button>
+    </div>
+  </div>
+
+  <!-- ================= SCOREBOARD (TV) ================= -->
+  <div class="screen" id="screen-scoreboard">
+    <div class="sb-top">
+      <svg class="bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h7l-1 8 11-13h-7l0-7Z"/></svg>
+      <h1 id="sb-eventname">Lomba Yantek</h1>
+      <div class="clock" id="sb-clock">00:00:00</div>
+      <div class="livepill"><span class="livedot"></span>LIVE</div>
+      <button class="sb-fs" onclick="toggleFullscreen()">⤢ Layar Penuh</button>
+      <button class="sb-back" onclick="goMode()">Keluar</button>
+    </div>
+    <div class="sb-list" id="sb-list"></div>
+    <div class="sb-footer" id="sb-footer">Memuat...</div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   STATE & STORAGE HELPERS
+   ============================================================ */
+let currentScreen = 'screen-mode';
+let currentJuriId = null;
+let currentJuriName = null;
+let currentPesertaId = null;
+let setupState = { eventName:'', peserta:[], kriteria:[], juri:[] };
+let lastTotals = {};
+
+function genId(){ return 'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+const DEFAULT_CONFIG = {
+  eventName: 'Lomba Yantek UP3 Merauke',
+  peserta: [
+    {id:genId(), nama:'ULP Merauke Kota'},
+    {id:genId(), nama:'ULP Kuprik'},
+    {id:genId(), nama:'ULP Kurik'},
+    {id:genId(), nama:'ULP Tanah Merah'},
+    {id:genId(), nama:'ULP Kepi'},
+  ],
+  kriteria: [
+    {id:genId(), nama:'K3 / Keselamatan Kerja', maxScore:100, bobot:25},
+    {id:genId(), nama:'Ketepatan Teknis & SOP', maxScore:100, bobot:35},
+    {id:genId(), nama:'Waktu Pengerjaan', maxScore:100, bobot:20},
+    {id:genId(), nama:'Kerapian & Penggunaan APD', maxScore:100, bobot:20},
+  ],
+  juri: [
+    {id:genId(), nama:'Juri 1'},
+    {id:genId(), nama:'Juri 2'},
+    {id:genId(), nama:'Juri 3'},
+  ]
+};
+
+async function loadConfig(){
+  try{
+    const res = await window.storage.get('config', true);
+    if(res && res.value) return JSON.parse(res.value);
+  }catch(e){ /* not found, fall through */ }
+  await saveConfigRaw(DEFAULT_CONFIG);
+  return DEFAULT_CONFIG;
+}
+async function saveConfigRaw(cfg){
+  try{ await window.storage.set('config', JSON.stringify(cfg), true); }
+  catch(e){ console.error('saveConfig failed', e); }
+}
+async function getPesertaScores(pesertaId){
+  try{
+    const res = await window.storage.get('scores:'+pesertaId, true);
+    if(res && res.value) return JSON.parse(res.value);
+  }catch(e){ /* no scores yet */ }
+  return {};
+}
+async function setPesertaScores(pesertaId, obj){
+  try{ await window.storage.set('scores:'+pesertaId, JSON.stringify(obj), true); return true; }
+  catch(e){ console.error('setScores failed', e); return false; }
+}
+async function fetchAllScores(config){
+  const out = {};
+  await Promise.all(config.peserta.map(async p=>{
+    out[p.id] = await getPesertaScores(p.id);
+  }));
+  return out;
+}
+async function resetAllScores(){
+  try{
+    const res = await window.storage.list('scores:', true);
+    if(res && res.keys){
+      await Promise.all(res.keys.map(k=>window.storage.delete(k, true).catch(()=>{})));
+    }
+  }catch(e){ console.error('reset failed', e); }
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentScreen = id;
+  document.body.classList.toggle('theme-dark', id==='screen-scoreboard');
+  window.scrollTo(0,0);
+}
+function goMode(){ show('screen-mode'); }
+
+async function goSetup(){
+  show('screen-setup');
+  const cfg = await loadConfig();
+  setupState = JSON.parse(JSON.stringify(cfg));
+  renderSetup();
+}
+
+async function goJudgeStart(){
+  show('screen-judge-who');
+  const cfg = await loadConfig();
+  const list = document.getElementById('jw-list');
+  const empty = document.getElementById('jw-empty');
+  list.innerHTML='';
+  if(!cfg.juri.length){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  cfg.juri.forEach(j=>{
+    const b = document.createElement('button');
+    b.className='pesertabtn';
+    b.innerHTML = `<div class="rankdot">👤</div><div class="pname">${escapeHtml(j.nama)}</div>`;
+    b.onclick = ()=>{ currentJuriId=j.id; currentJuriName=j.nama; goJudgeList(); };
+    list.appendChild(b);
+  });
+}
+
+async function goJudgeList(){
+  if(!currentJuriId){ goJudgeStart(); return; }
+  show('screen-judge-list');
+  document.getElementById('jl-juriname').textContent = currentJuriName;
+  const cfg = await loadConfig();
+  const allScores = await fetchAllScores(cfg);
+  const list = document.getElementById('jl-list');
+  const empty = document.getElementById('jl-empty');
+  list.innerHTML='';
+  if(!cfg.peserta.length){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  cfg.peserta.forEach((p,i)=>{
+    const done = allScores[p.id] && allScores[p.id][currentJuriId];
+    const b = document.createElement('button');
+    b.className='pesertabtn';
+    b.innerHTML = `<div class="rankdot">${i+1}</div><div class="pname">${escapeHtml(p.nama)}</div>
+      <span class="statuspill ${done?'done':'todo'}">${done?'✓ Sudah dinilai':'Belum'}</span>`;
+    b.onclick = ()=>goJudgeScore(p.id);
+    list.appendChild(b);
+  });
+}
+
+async function goJudgeScore(pesertaId){
+  currentPesertaId = pesertaId;
+  show('screen-judge-score');
+  const cfg = await loadConfig();
+  const peserta = cfg.peserta.find(p=>p.id===pesertaId);
+  document.getElementById('js-pname').textContent = peserta ? peserta.nama : '-';
+  const existing = await getPesertaScores(pesertaId);
+  const mine = existing[currentJuriId] || {};
+  const wrap = document.getElementById('js-kriteria');
+  wrap.innerHTML='';
+  cfg.kriteria.forEach(k=>{
+    const val = typeof mine[k.id]==='number' ? mine[k.id] : 0;
+    const card = document.createElement('div');
+    card.className='card kriteria-card';
+    card.innerHTML = `
+      <div class="ktop"><span class="knama">${escapeHtml(k.nama)}</span><span class="kval" id="kv-${k.id}">${val}</span></div>
+      <input type="range" min="0" max="${k.maxScore}" value="${val}" id="kr-${k.id}" data-kid="${k.id}" data-max="${k.maxScore}" data-bobot="${k.bobot}">
+      <div class="scalecaps"><span>0</span><span>Maks ${k.maxScore}</span></div>`;
+    wrap.appendChild(card);
+    const slider = card.querySelector('input[type=range]');
+    slider.addEventListener('input', ()=>{
+      document.getElementById('kv-'+k.id).textContent = slider.value;
+      updateJsTotal(cfg);
+    });
+  });
+  updateJsTotal(cfg);
+}
+function updateJsTotal(cfg){
+  let total=0;
+  cfg.kriteria.forEach(k=>{
+    const el = document.getElementById('kr-'+k.id);
+    if(!el) return;
+    const v = Number(el.value);
+    total += (v / (k.maxScore||100)) * k.bobot;
+  });
+  document.getElementById('js-total').textContent = total.toFixed(1);
+}
+async function jsSubmit(){
+  const cfg = await loadConfig();
+  const existing = await getPesertaScores(currentPesertaId);
+  const mine = {};
+  cfg.kriteria.forEach(k=>{
+    const el = document.getElementById('kr-'+k.id);
+    if(el) mine[k.id] = Number(el.value);
+  });
+  existing[currentJuriId] = mine;
+  const ok = await setPesertaScores(currentPesertaId, existing);
+  showToast(ok ? 'Nilai berhasil dikirim ✓' : 'Gagal mengirim, coba lagi');
+  if(ok) goJudgeList();
+}
+
+/* ============================================================
+   SETUP SCREEN RENDERING
+   ============================================================ */
+function renderSetup(){
+  document.getElementById('su-eventname').value = setupState.eventName || '';
+  document.getElementById('su-eventname').oninput = e=> setupState.eventName = e.target.value;
+  renderSuPeserta();
+  renderSuKriteria();
+  renderSuJuri();
+}
+function renderSuPeserta(){
+  const wrap = document.getElementById('su-peserta-list');
+  wrap.innerHTML='';
+  setupState.peserta.forEach(p=>{
+    const row = document.createElement('div');
+    row.className='row';
+    row.innerHTML = `<input type="text" value="${escapeAttr(p.nama)}" placeholder="Nama peserta/tim">
+      <button class="iconbtn" title="Hapus">✕</button>`;
+    row.querySelector('input').oninput = e=> p.nama = e.target.value;
+    row.querySelector('button').onclick = ()=>{
+      setupState.peserta = setupState.peserta.filter(x=>x.id!==p.id);
+      renderSuPeserta();
+    };
+    wrap.appendChild(row);
+  });
+}
+function suAddPeserta(){
+  setupState.peserta.push({id:genId(), nama:''});
+  renderSuPeserta();
+  const inputs = document.querySelectorAll('#su-peserta-list input');
+  if(inputs.length) inputs[inputs.length-1].focus();
+}
+function renderSuKriteria(){
+  const wrap = document.getElementById('su-kriteria-list');
+  wrap.innerHTML='';
+  let totalBobot = 0;
+  setupState.kriteria.forEach(k=>{
+    totalBobot += Number(k.bobot)||0;
+    const row = document.createElement('div');
+    row.className='row';
+    row.innerHTML = `
+      <input type="text" value="${escapeAttr(k.nama)}" placeholder="Nama kriteria">
+      <input type="number" class="num" value="${k.maxScore}" min="1" title="Skala maks">
+      <input type="number" class="num" value="${k.bobot}" min="0" title="Bobot %">
+      <button class="iconbtn" title="Hapus">✕</button>`;
+    const [tNama,tMax,tBobot] = row.querySelectorAll('input');
+    tNama.oninput = e=> k.nama = e.target.value;
+    tMax.oninput = e=> { k.maxScore = Number(e.target.value)||1; };
+    tBobot.oninput = e=> { k.bobot = Number(e.target.value)||0; renderSuKriteria(); };
+    row.querySelector('button').onclick = ()=>{
+      setupState.kriteria = setupState.kriteria.filter(x=>x.id!==k.id);
+      renderSuKriteria();
+    };
+    wrap.appendChild(row);
+  });
+  const badge = document.getElementById('su-total-bobot');
+  const ok = totalBobot===100;
+  badge.innerHTML = `<span class="badge ${ok?'badge-ok':'badge-warn'}">Total bobot: ${totalBobot}% ${ok?'✓':'(idealnya 100%)'}</span>`;
+}
+function suAddKriteria(){
+  setupState.kriteria.push({id:genId(), nama:'', maxScore:100, bobot:0});
+  renderSuKriteria();
+}
+function renderSuJuri(){
+  const wrap = document.getElementById('su-juri-list');
+  wrap.innerHTML='';
+  setupState.juri.forEach(j=>{
+    const row = document.createElement('div');
+    row.className='row';
+    row.innerHTML = `<input type="text" value="${escapeAttr(j.nama)}" placeholder="Nama juri">
+      <button class="iconbtn" title="Hapus">✕</button>`;
+    row.querySelector('input').oninput = e=> j.nama = e.target.value;
+    row.querySelector('button').onclick = ()=>{
+      setupState.juri = setupState.juri.filter(x=>x.id!==j.id);
+      renderSuJuri();
+    };
+    wrap.appendChild(row);
+  });
+}
+function suAddJuri(){
+  setupState.juri.push({id:genId(), nama:''});
+  renderSuJuri();
+}
+async function suSave(){
+  setupState.peserta = setupState.peserta.filter(p=>p.nama && p.nama.trim());
+  setupState.kriteria = setupState.kriteria.filter(k=>k.nama && k.nama.trim());
+  setupState.juri = setupState.juri.filter(j=>j.nama && j.nama.trim());
+  await saveConfigRaw(setupState);
+  showToast('Perubahan tersimpan ✓');
+  renderSetup();
+}
+let resetArmed = false;
+function suAskReset(){
+  const btn = event.target;
+  if(!resetArmed){
+    resetArmed = true;
+    btn.textContent = 'Yakin? Klik sekali lagi untuk hapus semua nilai';
+    setTimeout(()=>{ resetArmed=false; btn.textContent='Reset Semua Nilai'; }, 4000);
+    return;
+  }
+  resetArmed = false;
+  btn.textContent = 'Mereset...';
+  resetAllScores().then(()=>{
+    btn.textContent = 'Reset Semua Nilai';
+    showToast('Semua nilai telah direset');
+  });
+}
+
+/* ============================================================
+   SCOREBOARD
+   ============================================================ */
+async function goScoreboard(){
+  show('screen-scoreboard');
+  await renderScoreboard();
+  tickClock();
+}
+function computeResults(cfg, allScores){
+  const maxPossible = cfg.kriteria.reduce((s,k)=>s+(Number(k.bobot)||0),0);
+  return cfg.peserta.map(p=>{
+    const scoresObj = allScores[p.id] || {};
+    const juriIds = Object.keys(scoresObj);
+    let total = 0;
+    cfg.kriteria.forEach(k=>{
+      const vals = juriIds.map(jid=>scoresObj[jid] && scoresObj[jid][k.id]).filter(v=>typeof v==='number');
+      if(vals.length){
+        const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+        total += (avg/(k.maxScore||100))*k.bobot;
+      }
+    });
+    return { id:p.id, nama:p.nama, total, maxPossible, judgesCount: juriIds.length };
+  }).sort((a,b)=> b.total - a.total || a.nama.localeCompare(b.nama));
+}
+async function renderScoreboard(){
+  const cfg = await loadConfig();
+  document.getElementById('sb-eventname').textContent = cfg.eventName || 'Lomba Yantek';
+  const allScores = await fetchAllScores(cfg);
+  const results = computeResults(cfg, allScores);
+  const list = document.getElementById('sb-list');
+  if(!results.length){
+    list.innerHTML = '<div class="sb-empty">Belum ada peserta. Tambahkan di Setup Acara.</div>';
+    return;
+  }
+  list.innerHTML='';
+  const maxScore = Math.max(1, ...results.map(r=>r.total));
+  results.forEach((r,i)=>{
+    const rank = i+1;
+    const rclass = rank===1?'r1':rank===2?'r2':rank===3?'r3':'';
+    const pct = Math.min(100, (r.total / (r.maxPossible||100)) * 100);
+    const row = document.createElement('div');
+    row.className = 'sb-row '+rclass;
+    row.innerHTML = `
+      <div class="sb-rank">${rank}</div>
+      <div class="sb-main">
+        <div class="sb-name">${escapeHtml(r.nama)}</div>
+        <div class="sb-meta">${r.judgesCount}/${cfg.juri.length} juri telah menilai</div>
+        <div class="sb-gauge"><div class="sb-gauge-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="sb-score" id="sc-${r.id}">${r.total.toFixed(1)}<small> / ${r.maxPossible||100}</small></div>
+      ${rank===1 ? '<div class="current-flow"></div>' : ''}
+    `;
+    list.appendChild(row);
+    const prev = lastTotals[r.id];
+    if(prev!==undefined && Math.abs(prev - r.total) > 0.01){
+      const el = row.querySelector('.sb-score');
+      el.classList.add('flash');
+      setTimeout(()=>el.classList.remove('flash'), 800);
+    }
+    lastTotals[r.id] = r.total;
+  });
+  const submittedTotal = results.reduce((s,r)=>s+r.judgesCount,0);
+  document.getElementById('sb-footer').textContent =
+    `Terakhir diperbarui ${new Date().toLocaleTimeString('id-ID')} · ${cfg.juri.length} juri terdaftar`;
+}
+function tickClock(){
+  const el = document.getElementById('sb-clock');
+  if(el) el.textContent = new Date().toLocaleTimeString('id-ID');
+}
+function toggleFullscreen(){
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen?.(); }
+  else{ document.exitFullscreen?.(); }
+}
+
+/* ============================================================
+   POLLING LOOP
+   ============================================================ */
+let polling = false;
+setInterval(async ()=>{
+  if(polling) return;
+  polling = true;
+  try{
+    if(currentScreen==='screen-scoreboard'){ await renderScoreboard(); }
+    else if(currentScreen==='screen-judge-list'){ await goJudgeList(); }
+  }catch(e){ console.error(e); }
+  polling = false;
+}, 3000);
+setInterval(tickClock, 1000);
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return escapeHtml(s); }
+let toastTimer=null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* init */
+(async function init(){
+  try{ await loadConfig(); }catch(e){ console.error(e); }
+})();
+</script>
+</body>
+</html>
