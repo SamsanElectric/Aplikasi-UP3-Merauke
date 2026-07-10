@@ -33,16 +33,32 @@ FONNTE_URL = "https://api.fonnte.com/send"
 def ambil_data_cuaca():
     """Ambil data prakiraan cuaca BMKG untuk lokasi target.
 
-    Struktur asli BMKG: { lokasi: {...}, cuaca: [ [entry, entry, ...], [entry, ...], ... ] }
-    'cuaca' adalah list per-hari, tiap hari berisi entry per-3-jam. Kita ratakan (flatten)
-    semua entry jadi satu list kronologis.
+    Struktur ASLI dari api.bmkg.go.id/publik/prakiraan-cuaca (dikonfirmasi dari contoh JSON
+    resmi di github.com/infoBMKG/data-cuaca):
+
+        {
+          "lokasi": {...ringkasan lokasi di level root...},
+          "data": [
+            {
+              "lokasi": {...detail lokasi...},
+              "cuaca": [ [entry per-3-jam hari-1], [entry hari-2], [entry hari-3] ]
+            }
+          ]
+        }
+
+    'cuaca' ada di dalam data[0], BUKAN langsung di root. 'data' adalah list per-hari,
+    tiap hari berisi entry per-3-jam. Kita ratakan (flatten) semua entry jadi satu list
+    kronologis.
     """
     resp = requests.get(BMKG_URL, timeout=20)
     resp.raise_for_status()
     payload = resp.json()
 
-    lokasi = payload.get("lokasi", {})
-    hari_list = payload.get("cuaca", [])
+    data_arr = payload.get("data", [])
+    blok = data_arr[0] if data_arr else {}
+
+    lokasi = blok.get("lokasi", payload.get("lokasi", {}))
+    hari_list = blok.get("cuaca", [])
     entries = [item for hari in hari_list for item in hari]
     return lokasi, entries
 
