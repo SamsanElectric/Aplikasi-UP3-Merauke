@@ -21,6 +21,22 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
+      - name: Debug cek secret (aman, tidak membocorkan nilai)
+        env:
+          FONNTE_TOKEN: ${{ secrets.FONNTE_TOKEN }}
+          WAG_TARGET: ${{ secrets.WAG_TARGET }}
+        run: |
+          if [ -z "$FONNTE_TOKEN" ]; then
+            echo "FONNTE_TOKEN: KOSONG / tidak terbaca"
+          else
+            echo "FONNTE_TOKEN: ADA, panjang ${#FONNTE_TOKEN} karakter"
+          fi
+          if [ -z "$WAG_TARGET" ]; then
+            echo "WAG_TARGET: KOSONG / tidak terbaca"
+          else
+            echo "WAG_TARGET: ADA, panjang ${#WAG_TARGET} karakter"
+          fi
+          
       - name: Kirim peringatan cuaca ke WAG
         env:
           FONNTE_TOKEN: ${{ secrets.FONNTE_TOKEN }}
