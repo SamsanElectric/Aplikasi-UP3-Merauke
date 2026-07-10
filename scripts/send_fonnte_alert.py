@@ -103,14 +103,47 @@ def ikon_level(level):
     return {"bahaya": "🔴", "waspada": "🟡", "normal": "🟢"}.get(level, "⚪")
 
 
-def format_entry(e):
+BULAN_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+
+
+def _tanggal_jam(dt_str):
+    """Pecah 'YYYY-MM-DD HH:MM:SS' jadi (tanggal 'YYYY-MM-DD', label 'DD Bln', jam 'HH:MM')."""
+    dt_str = dt_str or ""
+    tanggal = dt_str[:10]
+    jam = dt_str[11:16] if len(dt_str) >= 16 else "?"
+    try:
+        d = datetime.strptime(tanggal, "%Y-%m-%d")
+        label_tanggal = f"{d.day} {BULAN_ID[d.month - 1]}"
+    except ValueError:
+        label_tanggal = tanggal
+    return tanggal, label_tanggal, jam
+
+
+def format_entry(e, tanggal_acuan=None):
+    """Format satu entry cuaca. Kalau tanggalnya beda dari tanggal_acuan (atau tanggal_acuan
+    None -> selalu tampil), tanggal ikut ditampilkan di depan jam."""
     icon = ikon_cuaca(e.get("weather_desc"))
-    jam = (e.get("local_datetime") or "?")[-8:-3]  # ambil "HH:MM" dari "YYYY-MM-DD HH:MM:SS"
+    tanggal, label_tanggal, jam = _tanggal_jam(e.get("local_datetime"))
+    prefix_tanggal = f"{label_tanggal}, " if (tanggal_acuan is None or tanggal != tanggal_acuan) else ""
     return (
-        f"{icon} {jam} WIT — {e.get('weather_desc', '?')}, "
+        f"{icon} {prefix_tanggal}{jam} WIT — {e.get('weather_desc', '?')}, "
         f"🌡️ {e.get('t', '?')}°C, 💨 {e.get('ws', '?')} m/s ({e.get('wd', '?')}), "
         f"💧 {e.get('hu', '?')}%"
     )
+
+
+def risiko_tertinggi_per_hari(entries_risiko):
+    """Dari entry-entry berisiko (level 'bahaya'), ambil satu yang paling parah (angin
+    tertinggi) untuk tiap tanggal, supaya tidak menumpuk banyak baris di hari yang sama."""
+    per_hari = {}
+    for e in entries_risiko:
+        tanggal, _, _ = _tanggal_jam(e.get("local_datetime"))
+        angin = float(e.get("ws", 0) or 0)
+        terbaik = per_hari.get(tanggal)
+        if terbaik is None or angin > float(terbaik.get("ws", 0) or 0):
+            per_hari[tanggal] = e
+    # urutkan berdasarkan tanggal
+    return [per_hari[t] for t in sorted(per_hari.keys())]
 
 
 def susun_pesan(lokasi, entries):
@@ -122,35 +155,39 @@ def susun_pesan(lokasi, entries):
     now = datetime.utcnow().strftime("%d %b %Y")
     sekarang = entries[0] if entries else {}
     level_sekarang = sekarang.get("alert_level", "normal")
+    tanggal_hari_ini, _, _ = _tanggal_jam(sekarang.get("local_datetime"))
 
     lines = [
+        "🌅 *KURIK HEBAT, MERAUKE MEROKET JUARA!* 🔥",
+        "",
         "⚠️ *PERINGATAN CUACA - TIM TEKNIK*",
         f"📍 {nama_lokasi} | 🗓️ {now}",
         "Sumber: BMKG Data Terbuka",
         "",
         f"{ikon_level(level_sekarang)} *Kondisi saat ini:*",
-        format_entry(sekarang),
+        format_entry(sekarang, tanggal_acuan=tanggal_hari_ini),
         "",
         "*Prakiraan 9 jam ke depan:*",
     ]
 
     for e in entries[1:4]:
-        lines.append(format_entry(e))
+        lines.append(format_entry(e, tanggal_acuan=tanggal_hari_ini))
 
     lines.append("")
 
     if bahaya:
-        lines.append("🔴 *RISIKO TINGGI TERDETEKSI:*")
-        for e in bahaya[:4]:
-            lines.append(f"- {format_entry(e)}")
-        lines.append("")
-        lines.append("👷 Rekomendasi: tunda pekerjaan di ketinggian/alat berat/jaringan udara "
-                      "pada jam-jam di atas. Amankan material yang mudah terbawa angin.")
+        lines.append("🔴 *RISIKO TINGGI (titik paling parah per hari):*")
+        for e in risiko_tertinggi_per_hari(bahaya):
+            lines.append(f"- {format_entry(e, tanggal_acuan=None)}")
     elif waspada:
         lines.append("🟡 Kondisi waspada (angin/hujan terdeteksi di beberapa jam). Pantau berkala.")
     else:
         lines.append("🟢 Tidak ada risiko signifikan terdeteksi untuk periode ini.")
 
+    lines.append("")
+    lines.append("🦺 *Pesan Keselamatan:* Utamakan K3 — gunakan APD lengkap, waspada jalur licin "
+                  "dan instalasi bertegangan saat cuaca buruk, dan segera laporkan kondisi tidak "
+                  "aman ke pengawas lapangan.")
     lines.append("")
     lines.append("_Pesan otomatis - bukan pengganti pemantauan langsung di lapangan._")
     return "\n".join(lines)
