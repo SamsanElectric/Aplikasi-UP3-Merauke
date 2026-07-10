@@ -62,39 +62,78 @@ def evaluasi_risiko(entries):
     return hasil
 
 
+WEATHER_ICON = {
+    "Cerah": "☀️",
+    "Cerah Berawan": "🌤️",
+    "Berawan": "⛅",
+    "Berawan Tebal": "☁️",
+    "Udara Kabur": "🌫️",
+    "Asap": "🌫️",
+    "Kabut": "🌫️",
+    "Hujan Ringan": "🌦️",
+    "Hujan Lokal": "🌦️",
+    "Hujan Sedang": "🌧️",
+    "Hujan Lebat": "🌧️",
+    "Hujan Petir": "⛈️",
+    "Petir": "⛈️",
+}
+
+
+def ikon_cuaca(weather_desc):
+    return WEATHER_ICON.get((weather_desc or "").strip(), "🌡️")
+
+
+def ikon_level(level):
+    return {"bahaya": "🔴", "waspada": "🟡", "normal": "🟢"}.get(level, "⚪")
+
+
+def format_entry(e):
+    icon = ikon_cuaca(e.get("weather_desc"))
+    jam = (e.get("local_datetime") or "?")[-8:-3]  # ambil "HH:MM" dari "YYYY-MM-DD HH:MM:SS"
+    return (
+        f"{icon} {jam} WIT — {e.get('weather_desc', '?')}, "
+        f"🌡️ {e.get('t', '?')}°C, 💨 {e.get('ws', '?')} m/s ({e.get('wd', '?')}), "
+        f"💧 {e.get('hu', '?')}%"
+    )
+
+
 def susun_pesan(lokasi, entries):
-    """Susun pesan ringkas untuk WAG dari hasil evaluasi risiko."""
+    """Susun pesan ringkas + iconful untuk WAG, selalu menampilkan nilai cuaca aktual."""
     nama_lokasi = f"{lokasi.get('desa', '?')}, {lokasi.get('kotkab', '?')}"
     bahaya = [e for e in entries if e["alert_level"] == "bahaya"]
     waspada = [e for e in entries if e["alert_level"] == "waspada"]
 
     now = datetime.utcnow().strftime("%d %b %Y")
+    sekarang = entries[0] if entries else {}
+    level_sekarang = sekarang.get("alert_level", "normal")
+
     lines = [
-        "*PERINGATAN CUACA - TIM TEKNIK*",
-        f"Lokasi: {nama_lokasi} | Update: {now}",
+        "⚠️ *PERINGATAN CUACA - TIM TEKNIK*",
+        f"📍 {nama_lokasi} | 🗓️ {now}",
         "Sumber: BMKG Data Terbuka",
         "",
+        f"{ikon_level(level_sekarang)} *Kondisi saat ini:*",
+        format_entry(sekarang),
+        "",
+        "*Prakiraan 9 jam ke depan:*",
     ]
 
+    for e in entries[1:4]:
+        lines.append(format_entry(e))
+
+    lines.append("")
+
     if bahaya:
-        lines.append("RISIKO TINGGI TERDETEKSI:")
+        lines.append("🔴 *RISIKO TINGGI TERDETEKSI:*")
         for e in bahaya[:4]:
-            lines.append(
-                f"- {e.get('local_datetime', '?')}: {e.get('weather_desc', '?')}, "
-                f"angin {e.get('ws', '?')} m/s"
-            )
+            lines.append(f"- {format_entry(e)}")
         lines.append("")
-        lines.append("Rekomendasi: tunda pekerjaan di ketinggian/alat berat/jaringan udara "
+        lines.append("👷 Rekomendasi: tunda pekerjaan di ketinggian/alat berat/jaringan udara "
                       "pada jam-jam di atas. Amankan material yang mudah terbawa angin.")
     elif waspada:
-        lines.append("Kondisi waspada (angin/hujan sedang terdeteksi). Pantau berkala.")
-        for e in waspada[:4]:
-            lines.append(
-                f"- {e.get('local_datetime', '?')}: {e.get('weather_desc', '?')}, "
-                f"angin {e.get('ws', '?')} m/s"
-            )
+        lines.append("🟡 Kondisi waspada (angin/hujan terdeteksi di beberapa jam). Pantau berkala.")
     else:
-        lines.append("Tidak ada risiko signifikan terdeteksi untuk periode ini.")
+        lines.append("🟢 Tidak ada risiko signifikan terdeteksi untuk periode ini.")
 
     lines.append("")
     lines.append("_Pesan otomatis - bukan pengganti pemantauan langsung di lapangan._")
