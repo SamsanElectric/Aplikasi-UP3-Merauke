@@ -15,8 +15,10 @@ Environment variable yang dibutuhkan (diisi lewat GitHub Secrets):
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import requests
+
+WIT = timezone(timedelta(hours=9))  # Asia/Jayapura, tidak kenal DST
 
 BMKG_ADM4 = os.environ.get("BMKG_ADM4", "93.01.11.2002")  # Kurik, Merauke
 FONNTE_TOKEN = os.environ.get("FONNTE_TOKEN", "")
@@ -152,7 +154,7 @@ def susun_pesan(lokasi, entries):
     bahaya = [e for e in entries if e["alert_level"] == "bahaya"]
     waspada = [e for e in entries if e["alert_level"] == "waspada"]
 
-    now = datetime.utcnow().strftime("%d %b %Y")
+    now = datetime.now(WIT).strftime("%d %b %Y")
     sekarang = entries[0] if entries else {}
     level_sekarang = sekarang.get("alert_level", "normal")
     tanggal_hari_ini, _, _ = _tanggal_jam(sekarang.get("local_datetime"))
